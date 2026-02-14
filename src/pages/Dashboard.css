@@ -1,221 +1,190 @@
-.dashboard-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 2.4rem;
-}
-
-.dashboard-greeting {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.dashboard-greeting h1 {
-  font-size: 1.65rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.dashboard-greeting span {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.dashboard-grid {
-  display: grid;
-  gap: 1.8rem;
-  grid-template-columns: repeat(2, minmax(280px, 1fr));
-  grid-template-areas:
-    "identity level"
-    "goals momentum"
-    "checkin action";
-}
-
-.dashboard-area {
-  height: 100%;
-  display: flex;
-}
-
-.dashboard-area > * {
-  width: 100%;
-}
-
-.dash-identity { grid-area: identity; }
-.dash-level { grid-area: level; }
-.dash-goals { grid-area: goals; }
-.dash-momentum { grid-area: momentum; }
-.dash-checkin { grid-area: checkin; }
-.dash-action { grid-area: action; }
-
-.dashboard-card-surface {
-  background: rgba(15, 15, 22, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 22px;
-  padding: 2rem;
-  box-shadow: 0 24px 46px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-}
-
-.panel-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.panel-title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.panel-sub {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.panel-link {
-  background: none;
-  border: 0;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.panel-link:hover {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.panel-copy {
-  font-size: 0.95rem;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.panel-placeholder {
-  flex: 1;
-  border-radius: 16px;
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.02);
-  padding: 1.6rem;
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.45);
+.dashboard-loading {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 100vh;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.1rem;
+}
+
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 3rem 2rem;
+  gap: 2.5rem;
   text-align: center;
 }
 
-.panel-placeholder.error {
-  border-color: rgba(255, 90, 90, 0.35);
-  color: rgba(255, 140, 140, 0.8);
-}
-
-.goals-list-mini {
-  display: grid;
-  gap: 0.9rem;
-}
-
-.goal-pill {
+.dashboard-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.2rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 14px;
-  padding: 0.9rem 1.1rem;
-}
-
-.goal-pill-main {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.75rem;
 }
 
-.goal-pill-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgba(80, 120, 255, 0.8);
-  box-shadow: 0 0 12px rgba(80, 120, 255, 0.6);
-}
-
-.goal-pill-title {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.goal-pill-deadline {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.checkin-card {
-  gap: 1.4rem;
-}
-
-.dashboard-card-surface .checkin-button {
-  width: 100%;
-}
-
-.dash-momentum .progress-panel {
-  margin-top: 1rem;
-  width: 100%;
-  justify-content: flex-start;
-}
-
-.dash-momentum .progress-row {
-  width: 100%;
-  max-width: none;
-}
-
-.dash-action .todays-action-section {
+.dashboard-title {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.95);
   margin: 0;
-  height: 100%;
+  text-transform: uppercase;
 }
 
-@media (max-width: 1024px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(2, minmax(240px, 1fr));
+.dashboard-subtitle {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  font-weight: 400;
+}
+
+.dashboard-mission {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  max-width: 680px;
+  width: 100%;
+}
+
+.mission-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.mission-text {
+  font-size: 1.8rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  min-height: 2.5rem;
+}
+
+.dashboard-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 3rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: lowercase;
+}
+
+.dashboard-checkin-button {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 1.15rem;
+  font-weight: 600;
+  padding: 1.2rem 3rem;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 1rem;
+}
+
+.dashboard-checkin-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.dashboard-checkin-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.dashboard-checkin-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dashboard-footer {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.footer-link {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 0;
+}
+
+.footer-link:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.footer-divider {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-title {
+    font-size: 3rem;
+  }
+
+  .mission-text {
+    font-size: 1.4rem;
+  }
+
+  .stat-value {
+    font-size: 2.5rem;
+  }
+
+  .dashboard-checkin-button {
+    font-size: 1rem;
+    padding: 1rem 2rem;
   }
 }
 
-@media (max-width: 860px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "identity"
-      "level"
-      "goals"
-      "momentum"
-      "checkin"
-      "action";
-  }
-}
-
-@media (max-width: 540px) {
-  .dashboard-card-surface {
-    padding: 1.6rem 1.4rem;
-    border-radius: 18px;
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding: 2rem 1.5rem;
+    gap: 2rem;
   }
 
-  .goal-pill {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.6rem;
+  .dashboard-title {
+    font-size: 2.5rem;
   }
 
-  .goal-pill-deadline {
-    align-self: flex-end;
+  .dashboard-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .mission-text {
+    font-size: 1.2rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
   }
 }
