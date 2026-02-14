@@ -9,7 +9,7 @@ const IdentityCard = () => {
   const [error, setError] = useState(null);
   const debounceRef = useRef();
 
-  // Fetch identity_text on mount
+  // Fetch identity on mount
   useEffect(() => {
     const fetchIdentity = async () => {
       setLoading(true);
@@ -22,11 +22,11 @@ const IdentityCard = () => {
       }
       const { data, error } = await supabase
         .from('profiles')
-        .select('identity_text')
+        .select('identity')
         .eq('id', user.id)
         .single();
       if (error) setError(error.message);
-      else setIdentity(data?.identity_text || '');
+      else setIdentity(data?.identity || '');
       setLoading(false);
     };
     fetchIdentity();
@@ -47,7 +47,7 @@ const IdentityCard = () => {
       }
       const { error } = await supabase
         .from('profiles')
-        .update({ identity_text: identity })
+        .update({ identity: identity })
         .eq('id', user.id);
       if (error) setError(error.message);
       setSaving(false);

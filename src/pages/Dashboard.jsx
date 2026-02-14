@@ -1,13 +1,16 @@
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import IdentityCard from "../components/IdentityCard";
 import LevelDisplay from "../components/LevelDisplay";
 import ProgressPanel from "../components/ProgressPanel";
+import GoalsPanel from "../components/GoalsPanel";
+import DailyCheckInCard from "../components/DailyCheckInCard";
 import TodaysAction from "../components/TodaysAction";
 import LevelUpOverlay from "../components/LevelUpOverlay";
 import "../components/TodaysAction.css";
 import "../components/LevelDisplay.css";
+import "./Dashboard.css";
 import { supabase } from "../supabaseClient";
 
 export default function Dashboard() {
@@ -120,47 +123,61 @@ export default function Dashboard() {
     }
   };
 
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  }, []);
+
   return (
-    <div className="dashboard-shell">
+    <>
       <LevelUpOverlay
         level={levelUpLevel || 1}
         isVisible={levelUpLevel !== null}
         onComplete={() => setLevelUpLevel(null)}
       />
 
-      <IdentityCard userId={user?.id} />
-      
-      <LevelDisplay userId={user?.id} refresh={refreshStats} />
-      
-      <section className="dashboard-card">
-        <h1 className="dashboard-title">Dashboard</h1>
-        <p className="dashboard-sub">Welcome {user?.email}</p>
-        
-        <div className="checkin-section">
-          <button 
-            className={`checkin-button ${checking ? 'checking' : ''}`}
-            onClick={handleCheckIn}
-            disabled={checking}
-          >
-            {checking ? 'Checking in...' : 'I showed up today'}
-          </button>
-          
-          {showConfirmation && (
-            <div className="checkin-confirmation">
-              You showed up.
-            </div>
-          )}
+      <div className="dashboard-wrapper">
+        <div className="dashboard-greeting">
+          <h1>{greeting}, {user?.email?.split("@")[0] ?? "creator"}</h1>
+          <span>{new Date().toLocaleDateString(undefined, { month: "long", day: "numeric" })}</span>
         </div>
 
-        <ProgressPanel userId={user?.id} refresh={refreshStats} />
-
-        {/* Today's Action section under streak */}
-        <TodaysAction userId={user?.id} />
-        
-        <button className="auth-button signout-btn" type="button" onClick={handleSignOut}>
-          Sign out
-        </button>
-      </section>
-    </div>
+        <div className="dashboard-grid">
+          <div className="dashboard-area dash-identity">
+            <IdentityCard userId={user?.id} />
+          </div>
+          <div className="dashboard-area dash-level">
+            <LevelDisplay userId={user?.id} refresh={refreshStats} />
+          </div>
+          <div className="dashboard-area dash-goals">
+            <GoalsPanel userId={user?.id} />
+          </div>
+          <div className="dashboard-area dash-momentum">
+            <div className="dashboard-card-surface">
+              <div className="panel-heading">
+                <span className="panel-title">Momentum</span>
+                <span className="panel-sub">consistency</span>
+              </div>
+              <ProgressPanel userId={user?.id} refresh={refreshStats} />
+            </div>
+          </div>
+          <div className="dashboard-area dash-checkin">
+            <DailyCheckInCard
+              checking={checking}
+              onCheckIn={handleCheckIn}
+              showConfirmation={showConfirmation}
+              onSignOut={handleSignOut}
+            />
+          </div>
+          <div className="dashboard-area dash-action">
+            <div className="dashboard-card-surface">
+              <TodaysAction userId={user?.id} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

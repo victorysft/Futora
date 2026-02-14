@@ -1,58 +1,73 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../supabaseClient";
 
 export default function Onboarding() {
-  const [loading, setLoading] = useState(true);
-  const [identity, setIdentity] = useState("");
+  const { user, loading, profile, refreshProfile } = useAuth();
+  const [identity, setIdentity] = useState(profile?.identity ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchIdentity = async () => {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/login", { replace: true });
-        return;
-      }
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("identity_text")
-        .eq("id", user.id)
-        .single();
-      if (error) setError(error.message);
-      else setIdentity(data?.identity_text || "");
-      setLoading(false);
-    };
-    fetchIdentity();
-    // eslint-disable-next-line
-  }, []);
+    if (!loading && !user) {
+      navigate("/login", { replace: true });
+    }
+  }, [loading, navigate, user]);
+
+  useEffect(() => {
+    setIdentity(profile?.identity ?? "");
+  }, [profile?.identity]);
 
   const handleCommit = async () => {
-    setSaving(true);
-    setError("");
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setError("Not authenticated");
-      setSaving(false);
       return;
     }
-    const { error } = await supabase
-      .from("profiles")
-      .update({ identity_text: identity })
-      .eq("id", user.id);
-    if (error) {
-      setError(error.message);
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const trimmedIdentity = identity.trim();
+
+      if (!profile) {
+        const { error: insertError } = await supabase
+          .from("profiles")
+          .insert({
+            id: user.id,
+            identity: trimmedIdentity,
+            xp: 0,
+            level: 1,
+            streak: 0,
+            last_check_in: null,
+          });
+
+        if (insertError) {
+          throw insertError;
+        }
+      } else {
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ identity: trimmedIdentity })
+          .eq("id", user.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+      }
+
+      await refreshProfile();
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(err.message || "Kon identiteit niet opslaan.");
+    } finally {
       setSaving(false);
-      return;
     }
-    setSaving(false);
-    // Redirect to /app and prevent back navigation
-    navigate("/app", { replace: true });
   };
+
+  const isBusy = saving || loading;
 
   return (
     <main className="page-shell">
@@ -66,16 +81,16 @@ export default function Onboarding() {
           onChange={e => setIdentity(e.target.value)}
           placeholder="Dit is wie ik aan het worden ben..."
           rows={5}
-          disabled={loading || saving}
-          style={{ width: '100%', marginBottom: 24 }}
+          disabled={isBusy}
+          style={{ width: "100%", marginBottom: 24 }}
         />
         <button
           className="auth-button"
-          style={{ width: '100%', fontWeight: 600, fontSize: '1.1rem', padding: '0.9rem 0', borderRadius: 12 }}
+          style={{ width: "100%", fontWeight: 600, fontSize: "1.1rem", padding: "0.9rem 0", borderRadius: 12 }}
           onClick={handleCommit}
-          disabled={saving || loading || !identity.trim()}
+          disabled={isBusy || !identity.trim()}
         >
-          {saving ? 'Opslaan...' : 'COMMIT'}
+          {saving ? "Opslaan..." : "COMMIT"}
         </button>
         {error && <div className="auth-error" style={{ marginTop: 24 }}>{error}</div>}
       </div>
