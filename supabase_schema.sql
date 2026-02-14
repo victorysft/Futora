@@ -6,8 +6,12 @@
 create table profiles (
   id uuid primary key references auth.users on delete cascade,
   username text,
+  identity text,
   created_at timestamp with time zone default now()
 );
+
+-- If updating existing table, run this instead:
+-- ALTER TABLE profiles ADD COLUMN identity text;
 
 alter table profiles enable row level security;
 
@@ -57,12 +61,15 @@ create policy "Users can delete their own goals"
 create table checkins (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references profiles(id) on delete cascade not null,
-  goal_id uuid references goals(id) on delete cascade not null,
+  goal_id uuid references goals(id) on delete cascade,
   minutes_worked integer,
   energy_level integer check (energy_level between 1 and 10),
   completed boolean default false,
   created_at timestamp with time zone default now()
 );
+
+-- If updating existing table, run this instead:
+-- ALTER TABLE checkins ALTER COLUMN goal_id DROP NOT NULL;
 
 alter table checkins enable row level security;
 
@@ -81,3 +88,13 @@ create policy "Users can update their own checkins"
 create policy "Users can delete their own checkins"
   on checkins for delete
   using (auth.uid() = user_id);
+
+
+-- ============================================
+-- 4) XP / LEVEL / TOTAL CHECK-INS  (migration)
+-- ============================================
+
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS xp              integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS level           integer NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS total_check_ins integer NOT NULL DEFAULT 0;

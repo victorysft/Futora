@@ -1,177 +1,74 @@
-import { useState, useEffect, useCallback } from "react";
+
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useAuth } from "./hooks/useAuth";
 import { supabase } from "./supabaseClient";
-import {
-  getToday,
-  canCheckIn,
-  shouldResetStreak,
-  calculateNewStreak,
-} from "./utils/streak";
-import * as store from "./utils/storage";
-import Auth from "./components/Auth";
-import GoalSetup from "./components/GoalSetup";
-import Dashboard from "./components/Dashboard";
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import Onboarding from "./pages/Onboarding";
 import "./App.css";
 
-function ProtectedRoute({ session, children }) {
-  if (session === undefined) return null;
-  if (!session) return <Navigate to="/login" replace />;
-  return children;
-}
-
-function PublicRoute({ session, children }) {
-  if (session === undefined) return null;
-  if (session) return <Navigate to="/dashboard" replace />;
-  return children;
-}
-
 function App() {
-  const [session, setSession] = useState(undefined);
-  const [goal, setGoal] = useState("");
-  const [streak, setStreak] = useState(0);
-  const [lastCheckIn, setLastCheckIn] = useState(null);
-  const [checkedInToday, setCheckedInToday] = useState(false);
+  const { user, loading } = useAuth();
+  const [identity, setIdentity] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Auth listener
+  // Fetch profile (identity_text) on load or when user changes
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => setSession(s));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      if (s) navigate("/dashboard", { replace: true });
-      else navigate("/login", { replace: true });
-    });
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const sync = useCallback(() => {
-    const g = store.getGoal();
-    const s = store.getStreak();
-    const lci = store.getLastCheckIn();
-    const today = getToday();
-
-    let resolved = s;
-    if (shouldResetStreak(lci)) {
-      resolved = 0;
-      store.setStreak(0);
+    if (!user) {
+      setIdentity(null);
+      setProfileLoading(false);
+      return;
     }
+    setProfileLoading(true);
+    supabase
+      .from("profiles")
+      .select("identity_text")
+      .eq("id", user.id)
+      .single()
+      .then(({ data, error }) => {
+        setIdentity(data?.identity_text || "");
+        setProfileLoading(false);
+      });
+  }, [user]);
 
-    setGoal(g);
-    setStreak(resolved);
-    setLastCheckIn(lci);
-    setCheckedInToday(lci === today);
-  }, []);
+  // Redirect logic for root
+  function RootRedirect() {
+    if (loading || profileLoading) return <div className="auth-info">Loading...</div>;
+    if (!user) return <Navigate to="/login" replace />;
+    if (!identity || identity.trim() === "") return <Navigate to="/onboarding" replace />;
+    return <Navigate to="/app" replace />;
+  }
 
-  useEffect(() => { sync(); }, [sync]);
+  // Route guard for /app
+  function AppGuard({ children }) {
+    if (loading || profileLoading) return <div className="auth-info">Loading...</div>;
+    if (!user) return <Navigate to="/login" replace />;
+    if (!identity || identity.trim() === "") return <Navigate to="/onboarding" replace />;
+    return children;
+  }
 
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === "visible") sync();
-    };
-    window.addEventListener("focus", sync);
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      window.removeEventListener("focus", sync);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [sync]);
-
-  const handleCommit = useCallback((newGoal) => {
-    store.setGoal(newGoal);
-    store.setStreak(0);
-    store.setLastCheckIn(null);
-    setGoal(newGoal);
-    setStreak(0);
-    setLastCheckIn(null);
-    setCheckedInToday(false);
-  }, []);
-
-  const handleCheckIn = useCallback(() => {
-    if (!canCheckIn(lastCheckIn)) return;
-
-    const today = getToday();
-    const next = calculateNewStreak(streak, lastCheckIn);
-
-    store.setStreak(next);
-    store.setLastCheckIn(today);
-    setStreak(next);
-    setLastCheckIn(today);
-    setCheckedInToday(true);
-  }, [streak, lastCheckIn]);
-
-  const handleReset = useCallback(() => {
-    store.clearAll();
-    setGoal("");
-    setStreak(0);
-    setLastCheckIn(null);
-    setCheckedInToday(false);
-  }, []);
-
-  const handleSignOut = useCallback(async () => {
-    await supabase.auth.signOut();
-  }, []);
-
-  // Loading state while checking session
-  if (session === undefined) {
-    return (
-      <div className="app">
-        <header className="header">
-          <h1 className="logo">FUTORA</h1>
-        </header>
-      </div>
-    );
+  // Route guard for /onboarding
+  function OnboardingGuard({ children }) {
+    if (loading || profileLoading) return <div className="auth-info">Loading...</div>;
+    if (!user) return <Navigate to="/login" replace />;
+    if (identity && identity.trim() !== "") return <Navigate to="/app" replace />;
+    return children;
   }
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1 className="logo">FUTORA</h1>
-        <p className="tagline">Your future is built by what you do today.</p>
-      </header>
-
-      <main className="main">
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <PublicRoute session={session}>
-                <Auth />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute session={session}>
-                {!goal ? (
-                  <GoalSetup onCommit={handleCommit} />
-                ) : (
-                  <Dashboard
-                    goal={goal}
-                    streak={streak}
-                    lastCheckIn={lastCheckIn}
-                    checkedInToday={checkedInToday}
-                    onCheckIn={handleCheckIn}
-                    onReset={handleReset}
-                  />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to={session ? "/dashboard" : "/login"} replace />} />
-        </Routes>
-      </main>
-
-      <footer className="footer">
-        {session ? (
-          <button className="btn-signout" onClick={handleSignOut}>
-            Sign out
-          </button>
-        ) : (
-          <p>You are what you repeatedly do.</p>
-        )}
-      </footer>
-    </div>
+    <main className="page-shell">
+      <Routes>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/onboarding" element={<OnboardingGuard><Onboarding /></OnboardingGuard>} />
+        <Route path="/app" element={<AppGuard><Dashboard /></AppGuard>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </main>
   );
 }
 

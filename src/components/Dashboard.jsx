@@ -1,4 +1,6 @@
+
 import { formatDate } from "../utils/streak";
+import IdentityCard from "./IdentityCard";
 
 export default function Dashboard({
   goal,
@@ -10,14 +12,18 @@ export default function Dashboard({
 }) {
   return (
     <div className="dashboard">
-      <div className="mission">
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2.5rem', marginBottom: '2.5rem' }}>
+        <IdentityCard />
+      </div>
+
+      <div className="mission" style={{ marginBottom: '2.5rem' }}>
         <span className="label">Your mission</span>
         <h2 className="mission-text">{goal}</h2>
       </div>
 
       <div className="rule" />
 
-      <div className="metrics">
+      <div className="metrics" style={{ marginBottom: '2.5rem' }}>
         <div className="metric">
           <span className="metric-value">{streak}</span>
           <span className="metric-label">day streak</span>
