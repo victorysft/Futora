@@ -8,17 +8,36 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const ensureProfile = async (userId) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .single();
+
+    if (!data) {
+      await supabase.from("profiles").insert({
+        id: userId,
+        username: email.split("@")[0],
+      });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { error: err } =
-      mode === "login"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+    if (mode === "login") {
+      const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) { setError(err.message); setLoading(false); return; }
+      await ensureProfile(data.user.id);
+    } else {
+      const { data, error: err } = await supabase.auth.signUp({ email, password });
+      if (err) { setError(err.message); setLoading(false); return; }
+      if (data.user) await ensureProfile(data.user.id);
+    }
 
-    if (err) setError(err.message);
     setLoading(false);
   };
 

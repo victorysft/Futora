@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import {
   getToday,
@@ -12,19 +13,36 @@ import GoalSetup from "./components/GoalSetup";
 import Dashboard from "./components/Dashboard";
 import "./App.css";
 
+function ProtectedRoute({ session, children }) {
+  if (session === undefined) return null;
+  if (!session) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function PublicRoute({ session, children }) {
+  if (session === undefined) return null;
+  if (session) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
 function App() {
   const [session, setSession] = useState(undefined);
   const [goal, setGoal] = useState("");
   const [streak, setStreak] = useState(0);
   const [lastCheckIn, setLastCheckIn] = useState(null);
   const [checkedInToday, setCheckedInToday] = useState(false);
+  const navigate = useNavigate();
 
   // Auth listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => setSession(s));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      if (s) navigate("/dashboard", { replace: true });
+      else navigate("/login", { replace: true });
+    });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const sync = useCallback(() => {
     const g = store.getGoal();
@@ -112,20 +130,36 @@ function App() {
       </header>
 
       <main className="main">
-        {!session ? (
-          <Auth />
-        ) : !goal ? (
-          <GoalSetup onCommit={handleCommit} />
-        ) : (
-          <Dashboard
-            goal={goal}
-            streak={streak}
-            lastCheckIn={lastCheckIn}
-            checkedInToday={checkedInToday}
-            onCheckIn={handleCheckIn}
-            onReset={handleReset}
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              <PublicRoute session={session}>
+                <Auth />
+              </PublicRoute>
+            }
           />
-        )}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute session={session}>
+                {!goal ? (
+                  <GoalSetup onCommit={handleCommit} />
+                ) : (
+                  <Dashboard
+                    goal={goal}
+                    streak={streak}
+                    lastCheckIn={lastCheckIn}
+                    checkedInToday={checkedInToday}
+                    onCheckIn={handleCheckIn}
+                    onReset={handleReset}
+                  />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to={session ? "/dashboard" : "/login"} replace />} />
+        </Routes>
       </main>
 
       <footer className="footer">
