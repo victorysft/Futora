@@ -1,0 +1,351 @@
+/* FUTORA */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  gap: 4rem;
+  background-color: #0f0f0f;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: "Inter", "SF Pro Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ── */
+
+.header {
+  text-align: center;
+}
+
+.logo {
+  font-size: 3.6rem;
+  font-weight: 700;
+  letter-spacing: 0.42em;
+  margin: 0;
+  color: #fff;
+}
+
+.tagline {
+  margin-top: 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.25);
+  letter-spacing: 0.04em;
+}
+
+/* ── Main ── */
+
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 460px;
+}
+
+/* ── Goal Setup ── */
+
+.setup {
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.setup-heading {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.setup-sub {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.25);
+  margin-bottom: 0.5rem;
+}
+
+/* ── Input ── */
+
+.input {
+  width: 100%;
+  padding: 1.05rem 1.25rem;
+  font-size: 1rem;
+  font-family: inherit;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(255, 255, 255, 0.9);
+  outline: none;
+  transition: border-color 0.25s;
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.16);
+}
+
+.input:focus {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* ── Commit Button ── */
+
+.btn-commit {
+  width: 100%;
+  padding: 1.05rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f0f0f;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-top: 0.25rem;
+}
+
+.btn-commit:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btn-commit:disabled {
+  opacity: 0.15;
+  cursor: not-allowed;
+}
+
+/* ── Dashboard ── */
+
+.dashboard {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.2rem;
+}
+
+.mission {
+  text-align: center;
+}
+
+.label {
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.mission-text {
+  font-size: 1.9rem;
+  font-weight: 600;
+  margin-top: 0.65rem;
+  color: #fff;
+  word-break: break-word;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+/* ── Rule ── */
+
+.rule {
+  width: 36px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Metrics ── */
+
+.metrics {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.8rem;
+  width: 100%;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.metric-value {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.metric-value.metric-date {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.4;
+}
+
+.metric-label {
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.metric-divider {
+  width: 1px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Check-in ── */
+
+.btn-checkin {
+  width: 100%;
+  padding: 1.15rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.015em;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.btn-checkin:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Confirmed ── */
+
+.confirmed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 1.15rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.015);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.confirmed-mark {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 1rem;
+}
+
+/* ── Reset ── */
+
+.btn-reset {
+  margin-top: 0.25rem;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.12);
+  font-size: 0.7rem;
+  font-family: inherit;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  padding: 0.4rem 0.8rem;
+  transition: color 0.2s;
+}
+
+.btn-reset:hover {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Footer ── */
+
+.footer {
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.05em;
+}
+
+/* ── Auth ── */
+
+.auth {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.auth-heading {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.auth-sub {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.25);
+  margin-bottom: 0.4rem;
+}
+
+.auth-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.auth-error {
+  font-size: 0.78rem;
+  color: rgba(255, 100, 100, 0.8);
+  text-align: center;
+}
+
+.auth-toggle {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.72rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0.4rem 0.8rem;
+  transition: color 0.2s;
+}
+
+.auth-toggle:hover {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Sign Out ── */
+
+.btn-signout {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.1);
+  font-size: 0.62rem;
+  font-family: inherit;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  transition: color 0.2s;
+}
+
+.btn-signout:hover {
+  color: rgba(255, 255, 255, 0.3);
+}
