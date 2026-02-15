@@ -40,36 +40,43 @@ export default function Signup() {
   };
 
   return (
-    <section className="auth-card">
-      <h1 className="auth-title">Sign up</h1>
-      <form className="auth-form" onSubmit={handleSubmit}>
-        <input
-          className="auth-input"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-          autoFocus
-        />
-        <input
-          className="auth-input"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-          minLength={6}
-        />
-        {error && <p className="auth-error">{error}</p>}
-        {message && <p className="auth-info">{message}</p>}
-        <button className="auth-button" type="submit" disabled={submitting}>
-          {submitting ? "Creating account..." : "Sign up"}
-        </button>
-      </form>
-      <p className="auth-switch">
-        Already have an account? <Link to="/login">Login</Link>
-      </p>
-    </section>
+    <div className="auth-page">
+      <div className="auth-hero">
+        <h1 className="auth-hero-title">FUTORA</h1>
+        <p className="auth-hero-subtitle">Your future is built by what you do today.</p>
+      </div>
+
+      <section className="auth-card">
+        <h2 className="auth-title">Sign up</h2>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <input
+            className="auth-input"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            autoFocus
+          />
+          <input
+            className="auth-input"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            minLength={6}
+          />
+          {error && <p className="auth-error">{error}</p>}
+          {message && <p className="auth-info">{message}</p>}
+          <button className="auth-button" type="submit" disabled={submitting}>
+            {submitting ? "Creating account..." : "Sign up"}
+          </button>
+        </form>
+        <p className="auth-switch">
+          Already have an account? <Link to="/login">Login</Link>
+        </p>
+      </section>
+    </div>
   );
 }
