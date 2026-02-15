@@ -98,3 +98,59 @@ ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS xp              integer NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS level           integer NOT NULL DEFAULT 1,
   ADD COLUMN IF NOT EXISTS total_check_ins integer NOT NULL DEFAULT 0;
+
+
+-- ============================================
+-- 5) ONBOARDING PROFILE FIELDS (migration)
+-- ============================================
+
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS becoming          text,
+  ADD COLUMN IF NOT EXISTS focus             text,
+  ADD COLUMN IF NOT EXISTS commitment_level  text,
+  ADD COLUMN IF NOT EXISTS age               integer,
+  ADD COLUMN IF NOT EXISTS location          text,
+  ADD COLUMN IF NOT EXISTS streak            integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS streak_start_date date,
+  ADD COLUMN IF NOT EXISTS profile_completed boolean NOT NULL DEFAULT false;
+
+
+-- ============================================
+-- 6) EVENTS TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS events (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title         text NOT NULL,
+  description   text,
+  date          timestamp with time zone NOT NULL,
+  is_featured   boolean NOT NULL DEFAULT false,
+  created_at    timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Events are publicly readable"
+  ON events FOR SELECT
+  USING (true);
+
+
+-- ============================================
+-- 7) COMMUNITIES TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS communities (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          text NOT NULL,
+  description   text,
+  rating        numeric(2,1) NOT NULL DEFAULT 0,
+  members_count integer NOT NULL DEFAULT 0,
+  category      text,
+  created_at    timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE communities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Communities are publicly readable"
+  ON communities FOR SELECT
+  USING (true);

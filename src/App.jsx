@@ -1,56 +1,82 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
+import { OnboardingProvider } from "./context/OnboardingContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
+import Focus from "./pages/Focus";
+import Progress from "./pages/Progress";
+import Network from "./pages/Network";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Onboarding from "./pages/Onboarding";
 import "./App.css";
 
-function App() {
+/* ── Loading screen ── */
+function LoadingScreen() {
+  return <div className="auth-info">Loading...</div>;
+}
+
+/* ── Route Guards ── */
+function AuthGuard({ children }) {
+  const { user, loading, profileLoading } = useAuth();
+  if (loading || profileLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function OnboardingGuard({ children }) {
   const { user, loading, profile, profileLoading } = useAuth();
-  const profileIdentity = profile?.identity ?? "";
-  const hasProfile = Boolean(profile);
-  const hasCompletedProfile = hasProfile && profileIdentity.trim() !== "";
+  if (loading || profileLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (profile?.profile_completed === true) return <Navigate to="/dashboard" replace />;
+  return children;
+}
 
-  function DashboardGuard({ children }) {
-    if (loading || profileLoading) {
-      return <div className="auth-info">Loading...</div>;
-    }
-    if (!user) {
-      return <Navigate to="/login" replace />;
-    }
-    if (!hasCompletedProfile) {
-      return <Navigate to="/onboarding" replace />;
-    }
-    return children;
+function DashboardGuard({ children }) {
+  const { user, loading, profile, profileLoading } = useAuth();
+  if (loading || profileLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (profile?.profile_completed !== true) return <Navigate to="/onboarding/step-1" replace />;
+  return children;
+}
+
+function GuestGuard({ children }) {
+  const { user, loading, profile, profileLoading } = useAuth();
+  if (loading || profileLoading) return <LoadingScreen />;
+  if (user) {
+    if (profile?.profile_completed === true) return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/onboarding/step-1" replace />;
   }
+  return children;
+}
 
-  function OnboardingGuard({ children }) {
-    if (loading || profileLoading) {
-      return <div className="auth-info">Loading...</div>;
-    }
-    if (!user) {
-      return <Navigate to="/login" replace />;
-    }
-    if (hasCompletedProfile) {
-      return <Navigate to="/" replace />;
-    }
-    return children;
-  }
-
+function App() {
   return (
-    <main className="page-shell">
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/onboarding" element={<OnboardingGuard><Onboarding /></OnboardingGuard>} />
-        <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<DashboardGuard><Dashboard /></DashboardGuard>} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </main>
+    <OnboardingProvider>
+      <main className="page-shell">
+        <Routes>
+          {/* Public — redirect if already logged in */}
+          <Route path="/login" element={<GuestGuard><Login /></GuestGuard>} />
+          <Route path="/signup" element={<GuestGuard><Signup /></GuestGuard>} />
+
+          {/* Onboarding — must be logged in, profile NOT completed */}
+          <Route path="/onboarding/:step" element={<OnboardingGuard><Onboarding /></OnboardingGuard>} />
+
+          {/* Dashboard — must be logged in, profile completed */}
+          <Route path="/dashboard" element={<DashboardGuard><Dashboard /></DashboardGuard>} />
+          <Route path="/focus" element={<DashboardGuard><Focus /></DashboardGuard>} />
+          <Route path="/progress" element={<DashboardGuard><Progress /></DashboardGuard>} />
+          <Route path="/network" element={<DashboardGuard><Network /></DashboardGuard>} />
+          <Route path="/profile" element={<DashboardGuard><Profile /></DashboardGuard>} />
+          <Route path="/settings" element={<DashboardGuard><Settings /></DashboardGuard>} />
+
+          {/* Catch-all → login first */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </main>
+    </OnboardingProvider>
   );
 }
 

@@ -1,0 +1,427 @@
+/* ════════════════════════════════════════════
+   FUTORA · Login — Private Access Terminal
+   ════════════════════════════════════════════ */
+
+/* ── Full-screen page ── */
+.login-page {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #000000;
+}
+
+/* ── Cinematic Background Video ── */
+.background-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
+  filter: brightness(0.6) contrast(1.05) saturate(0.8) blur(1px);
+}
+
+/* ── Layered Depth Video Overlay ── */
+.video-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.6) 0%,
+      rgba(0, 0, 0, 0.2) 50%,
+      rgba(0, 0, 0, 0.6) 100%
+    ),
+    rgba(0, 0, 0, 0.75);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Subtle vignette layer */
+.video-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  pointer-events: none;
+}
+
+/* Atmospheric shadow drift */
+.video-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.15) 100%
+  );
+  animation: atmosphericDrift 80s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes atmosphericDrift {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translateY(-2%);
+  }
+}
+
+/* ── Login card ── */
+.login-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 370px;
+  margin: 2rem;
+  padding: 2.75rem;
+  background: 
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.02) 0%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    #0A0A0A;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  box-shadow: 
+    0 80px 180px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+  transform: translateY(-12px);
+  transition: transform 0.3s ease;
+}
+
+.login-card:hover {
+  transform: translateY(-14px);
+}
+
+/* Subtle depth separation glow behind card */
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: -60px;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.04) 0%,
+    transparent 70%
+  );
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* Label */
+.login-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.28);
+  margin: 0 0 0.5rem 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+/* Brand */
+.login-logo {
+  font-size: 2.3125rem;
+  font-weight: 900;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  margin: 0 0 0.35rem 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* Subtext */
+.login-subtext {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  max-width: 90%;
+}
+
+/* ── Auth block ── */
+.login-auth {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0;
+}
+
+/* Apple button (primary) */
+.login-apple-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(
+    180deg,
+    #0E0E0E 0%,
+    #050505 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #FFFFFF;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  letter-spacing: 0.015em;
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.login-apple-btn:hover {
+  background: #111111;
+  transform: scale(1.01);
+}
+
+.login-apple-btn svg {
+  flex-shrink: 0;
+}
+
+/* Google button (secondary) */
+.login-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(
+    180deg,
+    #0E0E0E 0%,
+    #050505 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #FFFFFF;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  letter-spacing: 0.015em;
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.login-google-btn:hover {
+  background: linear-gradient(
+    180deg,
+    #151515 0%,
+    #0A0A0A 100%
+  );
+  transform: scale(1.01);
+}
+
+.login-google-btn svg {
+  flex-shrink: 0;
+}
+
+/* Divider */
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+
+.login-divider-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.login-divider-text {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.25);
+  text-transform: lowercase;
+  letter-spacing: 0.06em;
+}
+
+/* Form */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* Inputs */
+.login-input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: #101010;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  color: #FFFFFF;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.login-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #141414;
+}
+
+/* Password wrapper */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper .login-input {
+  padding-right: 3rem;
+}
+
+/* Password toggle button */
+.password-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s ease;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.password-toggle:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.password-toggle:active {
+  color: #ffffff;
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* CTA button */
+.login-cta-btn {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin-top: 28px;
+  background: #1C1C1C;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  color: #FFFFFF;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+}
+
+.login-cta-btn:hover:not(:disabled) {
+  background: #222222;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  transform: scale(1.01);
+}
+
+.login-cta-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Switch text */
+.login-switch {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin: 0.75rem 0 0 0;
+  text-align: center;
+}
+
+.login-switch a {
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.login-switch a:hover {
+  color: #FFFFFF;
+}
+
+/* Error */
+.login-error {
+  font-size: 0.82rem;
+  color: #ff6b6b;
+  margin: 0;
+}
+
+/* ════════════════════════════════════════════
+   MOBILE
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .login-card {
+    max-width: 380px;
+    padding: 2.5rem 2rem;
+    gap: 1.25rem;
+    margin: 1.5rem;
+  }
+
+  .login-logo {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .login-card {
+    padding: 2rem 1.5rem;
+    gap: 1rem;
+    margin: 1rem;
+  }
+
+  .login-logo {
+    font-size: 1.3rem;
+  }
+}

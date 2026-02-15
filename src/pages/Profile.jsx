@@ -1,8 +1,8 @@
 import DashboardLayout from "../components/DashboardLayout";
 
-export default function Settings() {
+export default function Profile() {
   return (
-    <DashboardLayout pageTitle="SETTINGS">
+    <DashboardLayout pageTitle="PROFILE">
       <div className="d-content">
         <div className="d-row">
           <div className="d-card">
@@ -12,7 +12,7 @@ export default function Settings() {
               color: "rgba(255, 255, 255, 0.85)",
               margin: "0 0 0.5rem 0" 
             }}>
-              Settings
+              Profile
             </h2>
             <p style={{ 
               fontSize: "0.9rem", 
