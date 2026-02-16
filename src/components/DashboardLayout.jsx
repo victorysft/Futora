@@ -7,6 +7,8 @@ const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "My Focus", path: "/focus" },
   { label: "Progress", path: "/progress" },
+  { label: "Leaderboard", path: "/leaderboard" },
+  { label: "Global Live", path: "/global" },
   { label: "Network", path: "/network" },
   { label: "Profile", path: "/profile" },
   { label: "Settings", path: "/settings" },

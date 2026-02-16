@@ -5,6 +5,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Focus from "./pages/Focus";
 import Progress from "./pages/Progress";
+import Leaderboard from "./pages/Leaderboard";
+import GlobalLive from "./pages/GlobalLive";
 import Network from "./pages/Network";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
@@ -68,6 +70,8 @@ function App() {
           <Route path="/dashboard" element={<DashboardGuard><Dashboard /></DashboardGuard>} />
           <Route path="/focus" element={<DashboardGuard><Focus /></DashboardGuard>} />
           <Route path="/progress" element={<DashboardGuard><Progress /></DashboardGuard>} />
+          <Route path="/leaderboard" element={<DashboardGuard><Leaderboard /></DashboardGuard>} />
+          <Route path="/global" element={<DashboardGuard><GlobalLive /></DashboardGuard>} />
           <Route path="/network" element={<DashboardGuard><Network /></DashboardGuard>} />
           <Route path="/profile" element={<DashboardGuard><Profile /></DashboardGuard>} />
           <Route path="/settings" element={<DashboardGuard><Settings /></DashboardGuard>} />

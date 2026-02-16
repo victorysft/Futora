@@ -3,6 +3,8 @@ import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../supabaseClient";
 import { motion } from "framer-motion";
 import DashboardLayout from "../components/DashboardLayout";
+import { usePresence } from "../hooks/usePresence";
+import { useLiveDashboard } from "../hooks/useLiveDashboard";
 import "./Dashboard.css";
 
 /* ── Helpers ── */
@@ -40,22 +42,22 @@ const fadeUp = {
 /* ── Progression milestones ── */
 const PROGRESSION_STEPS = [1, 7, 30, 100];
 
-/* ── Daily quotes ── */
-const QUOTES = [
-  "If not you, then who.",
-  "Discipline is the bridge between goals and accomplishment.",
-  "The future belongs to those who prepare for it.",
-  "Small daily improvements over time lead to stunning results.",
-  "Stay patient and trust your journey.",
-  "What you do today matters more than what you plan to do tomorrow.",
-  "Ambition is the first step. Action is every step after.",
-];
+/* ── Time-based greeting ── */
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
 
-function getDailyQuote() {
-  const dayOfYear = Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000
-  );
-  return QUOTES[dayOfYear % QUOTES.length];
+/* ── Calculate days since start ── */
+function getDaysSinceStart(streakStartDate) {
+  if (!streakStartDate) return 1;
+  const start = new Date(streakStartDate);
+  const today = new Date();
+  const diffTime = Math.abs(today - start);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays || 1;
 }
 
 export default function Dashboard() {
@@ -68,6 +70,13 @@ export default function Dashboard() {
   const [weekEvents, setWeekEvents] = useState([]);
   const [communities, setCommunities] = useState([]);
 
+  /* ── Last 7 days check-in data for mini graph ── */
+  const [weeklyData, setWeeklyData] = useState([0, 0, 0, 0, 0, 0, 0]);
+
+  /* ── Real-time hooks ── */
+  const { onlineCount } = usePresence(user?.id);
+  const liveCounters = useLiveDashboard();
+
   /* ── Derived from profile ── */
   const streak = profile?.streak || 0;
   const focus = profile?.focus || "";
@@ -77,6 +86,8 @@ export default function Dashboard() {
   const level = profile?.level || 0;
   const checkedInToday = lastCheckIn === getToday();
   const xpProgress = Math.min((xp % 100) / 100, 1);
+  const streakStartDate = profile?.streak_start_date || null;
+  const daysSinceStart = getDaysSinceStart(streakStartDate);
 
   /* ── Consistency % (last 7 days) ── */
   const consistencyPct = Math.min(
@@ -147,6 +158,42 @@ export default function Dashboard() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  /* ── Fetch last 7 days hourly data ── */
+  const fetchWeeklyGraph = useCallback(async () => {
+    if (!user) return;
+    try {
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d.toISOString().slice(0, 10));
+      }
+
+      const { data } = await supabase
+        .from("checkins")
+        .select("created_at, minutes_worked")
+        .eq("user_id", user.id)
+        .gte("created_at", days[0] + "T00:00:00");
+
+      const mapped = days.map((day) => {
+        const dayEntries = (data || []).filter(
+          (c) => c.created_at?.slice(0, 10) === day
+        );
+        return dayEntries.reduce(
+          (sum, c) => sum + (c.minutes_worked || 0),
+          0
+        ) / 60;
+      });
+      setWeeklyData(mapped);
+    } catch (e) {
+      /* silent */
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchWeeklyGraph();
+  }, [fetchWeeklyGraph]);
+
   /* ── Check-in handler ── */
   const handleCheckIn = async () => {
     if (checking || checkedInToday || !user) return;
@@ -183,7 +230,21 @@ export default function Dashboard() {
         }
       }
 
-      const newXP = prevXP + 10;
+      // XP cap: max 150 XP per day
+      const todayStart = today + "T00:00:00.000Z";
+      const { data: todayActivity } = await supabase
+        .from("live_activity")
+        .select("meta")
+        .eq("user_id", user.id)
+        .eq("type", "checkin")
+        .gte("created_at", todayStart);
+
+      const xpEarnedToday = (todayActivity || []).reduce(
+        (sum, a) => sum + (a.meta?.xp_gained || 0), 0
+      );
+      const xpGain = Math.min(10, 150 - xpEarnedToday);
+      const newXP = prevXP + Math.max(xpGain, 0);
+      const prevLevel = currentProfile?.level || 0;
       const newLevel = Math.floor(Math.sqrt(newXP / 50));
 
       await supabase
@@ -197,16 +258,41 @@ export default function Dashboard() {
         })
         .eq("id", user.id);
 
-      await supabase.from("checkins").insert({
+      // Insert checkin with date column for unique constraint
+      const { error: checkinError } = await supabase.from("checkins").insert({
         user_id: user.id,
         goal_id: null,
         minutes_worked: 30,
         energy_level: 8,
         completed: true,
+        date: today,
       });
+
+      // If duplicate (unique constraint on user_id+date), silently skip
+      if (checkinError && checkinError.code === "23505") {
+        setChecking(false);
+        return;
+      }
+
+      // Insert live_activity record for checkin
+      await supabase.from("live_activity").insert({
+        user_id: user.id,
+        type: "checkin",
+        meta: { streak: newStreak, xp_gained: Math.max(xpGain, 0) },
+      });
+
+      // If leveled up, insert a separate levelup activity
+      if (newLevel > prevLevel) {
+        await supabase.from("live_activity").insert({
+          user_id: user.id,
+          type: "levelup",
+          meta: { from_level: prevLevel, to_level: newLevel, xp: newXP },
+        });
+      }
 
       await refreshProfile();
       setWeeklySessions((s) => s + 1);
+      fetchWeeklyGraph();
     } catch (err) {
       console.error("Check-in failed:", err);
     } finally {
@@ -224,6 +310,40 @@ export default function Dashboard() {
     );
   }
 
+  /* ── Mini graph SVG path builder ── */
+  const buildGraphPath = () => {
+    const max = Math.max(...weeklyData, 1);
+    const w = 280;
+    const h = 60;
+    const padY = 8;
+    const points = weeklyData.map((v, i) => ({
+      x: (i / 6) * w,
+      y: h - padY - (v / max) * (h - padY * 2),
+    }));
+
+    if (points.length < 2) return { path: "", dots: points };
+
+    let path = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const cx = (points[i].x + points[i + 1].x) / 2;
+      path += ` C ${cx} ${points[i].y}, ${cx} ${points[i + 1].y}, ${points[i + 1].x} ${points[i + 1].y}`;
+    }
+    return { path, dots: points };
+  };
+
+  const { path: graphPath, dots: graphDots } = buildGraphPath();
+
+  /* ── Placeholder communities ── */
+  const PLACEHOLDER_COMMUNITIES = [
+    { id: "p1", name: "Discipline Lab", description: "Daily accountability for builders and learners.", rating: 4.8, members_count: 124 },
+    { id: "p2", name: "Focus Circle", description: "Deep work sessions and productivity frameworks.", rating: 4.6, members_count: 89 },
+    { id: "p3", name: "Growth Engine", description: "Track habits, share progress, level up together.", rating: 4.9, members_count: 203 },
+  ];
+
+  const displayCommunities = communities.length > 0
+    ? communities.slice(0, 3)
+    : PLACEHOLDER_COMMUNITIES;
+
   return (
     <DashboardLayout pageTitle="DASHBOARD">
       <motion.div
@@ -232,187 +352,263 @@ export default function Dashboard() {
         initial="hidden"
         animate="visible"
       >
-        {/* ── Daily quote ── */}
-        <motion.p className="d-quote" variants={fadeUp}>
-          "{getDailyQuote()}"
-        </motion.p>
+        {/* ═══════ HERO SECTION ═══════ */}
+        <motion.div className="d-hero" variants={fadeUp}>
+          <div className="d-hero-main">
+            <div className="d-hero-left">
+              <h1 className="d-hero-greeting">{getGreeting()}</h1>
+              <p className="d-hero-journey">
+                Day {daysSinceStart} — Becoming <span className="d-hero-focus">{focus || "your best self"}</span>
+              </p>
+              <div className="d-hero-xp">
+                <div className="d-hero-xp-track">
+                  <motion.div
+                    className="d-hero-xp-fill"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${xpProgress * 100}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                  />
+                </div>
+                <span className="d-hero-xp-text">Level {level} — {xp % 100}/100 XP</span>
+              </div>
+              <button
+                className="d-btn d-btn-purple"
+                onClick={handleCheckIn}
+                disabled={checking || checkedInToday}
+              >
+                {checking ? "RECORDING…" : checkedInToday ? "✓ CHECKED IN TODAY" : "START TODAY"}
+              </button>
+            </div>
+            <div className="d-hero-right">
+              <div className="d-hero-streak">
+                <div className="d-hero-flame">
+                  <svg width="36" height="44" viewBox="0 0 36 44" fill="none">
+                    <path
+                      d="M18 0C18 0 28 10 28 20C28 26 24 32 18 34C12 32 8 26 8 20C8 10 18 0 18 0Z"
+                      fill="url(#flameOuter)"
+                    />
+                    <path
+                      d="M18 12C18 12 24 18 24 24C24 28 21 31 18 32C15 31 12 28 12 24C12 18 18 12 18 12Z"
+                      fill="url(#flameInner)"
+                    />
+                    <defs>
+                      <linearGradient id="flameOuter" x1="18" y1="0" x2="18" y2="34" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#FF8C00" />
+                        <stop offset="1" stopColor="#FF4500" />
+                      </linearGradient>
+                      <linearGradient id="flameInner" x1="18" y1="12" x2="18" y2="32" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#FFD700" />
+                        <stop offset="1" stopColor="#FF8C00" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                <div className="d-hero-streak-num">{streak}</div>
+                <div className="d-hero-streak-label">DAY STREAK</div>
+              </div>
+              {lastCheckIn && (
+                <div className="d-hero-last-checkin">
+                  Last check-in: {lastCheckIn === getToday() ? "Today" : lastCheckIn}
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
 
-        {/* ═══════ SECTION 1 — TOP STRIP ═══════ */}
+        {/* ═══════ LIVE ACTIVITY STRIP ═══════ */}
+        <motion.div className="d-live-strip" variants={fadeUp}>
+          <span className="d-live-dot" />
+          <span className="d-live-label">LIVE</span>
+          <span className="d-live-divider" />
+          <span className="d-live-stat">{onlineCount} online now</span>
+          <span className="d-live-divider" />
+          <span className="d-live-stat">{liveCounters.checkinsToday} checked in today</span>
+          <span className="d-live-divider" />
+          <span className="d-live-stat">{liveCounters.activeEvents} events active</span>
+          <span className="d-live-divider" />
+          <span className="d-live-stat">{liveCounters.levelUpsToday} level-ups today</span>
+        </motion.div>
+
+        {/* ═══════ STAT CARDS ═══════ */}
         <div className="d-row d-row-metrics">
           <motion.div className="d-card d-card-metric" variants={fadeUp}>
-            <span className="d-card-label">STREAK</span>
-            <span className="d-metric-num">{streak}</span>
-            <span className="d-card-sub">days</span>
-          </motion.div>
-
-          <motion.div className="d-card d-card-metric" variants={fadeUp}>
-            <span className="d-card-label">THIS WEEK</span>
-            <span className="d-metric-num">{committedHours}</span>
-            <span className="d-card-sub">hours committed</span>
-          </motion.div>
-
-          <motion.div className="d-card d-card-metric" variants={fadeUp}>
-            <span className="d-card-label">LEVEL</span>
-            <span className="d-metric-num">{level}</span>
-            <div className="d-xp-bar">
-              <div className="d-xp-track">
-                <div
-                  className="d-xp-fill"
-                  style={{ width: `${xpProgress * 100}%` }}
-                />
-              </div>
-              <span className="d-xp-text">XP: {xp % 100}/100</span>
+            <span className="d-card-label">WEEKLY SESSIONS</span>
+            <motion.span
+              className="d-metric-num"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              {weeklySessions}
+            </motion.span>
+            <span className="d-card-sub">this week</span>
+            <div className="d-metric-bar">
+              <motion.div
+                className="d-metric-bar-fill"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min((weeklySessions / 7) * 100, 100)}%` }}
+                transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+              />
             </div>
           </motion.div>
 
           <motion.div className="d-card d-card-metric" variants={fadeUp}>
+            <span className="d-card-label">COMMITMENT</span>
+            <motion.span
+              className="d-metric-num"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              {committedHours}
+            </motion.span>
+            <span className="d-card-sub">hours / week</span>
+            <div className="d-metric-bar">
+              <div className="d-metric-bar-fill" style={{ width: "60%" }} />
+            </div>
+          </motion.div>
+
+          <motion.div className="d-card d-card-metric" variants={fadeUp}>
+            <span className="d-card-label">CURRENT LEVEL</span>
+            <motion.span
+              className="d-metric-num"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              {level}
+            </motion.span>
+            <span className="d-card-sub">{xp % 100}/100 XP</span>
+            <div className="d-metric-bar">
+              <motion.div
+                className="d-metric-bar-fill"
+                initial={{ width: 0 }}
+                animate={{ width: `${xpProgress * 100}%` }}
+                transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+              />
+            </div>
+          </motion.div>
+
+          <motion.div className="d-card d-card-metric d-card-metric-consistency" variants={fadeUp}>
             <span className="d-card-label">CONSISTENCY</span>
-            <span className="d-metric-num">{consistencyPct}%</span>
+            <div className="d-consistency-circle">
+              <svg width="72" height="72" viewBox="0 0 72 72">
+                <circle
+                  cx="36"
+                  cy="36"
+                  r="30"
+                  fill="none"
+                  stroke="rgba(255, 255, 255, 0.06)"
+                  strokeWidth="3"
+                />
+                <motion.circle
+                  cx="36"
+                  cy="36"
+                  r="30"
+                  fill="none"
+                  stroke="#8B5CF6"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 30}`}
+                  initial={{ strokeDashoffset: 2 * Math.PI * 30 }}
+                  animate={{
+                    strokeDashoffset: 2 * Math.PI * 30 * (1 - consistencyPct / 100),
+                  }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
+                />
+              </svg>
+              <div className="d-consistency-text">{consistencyPct}%</div>
+            </div>
             <span className="d-card-sub">last 7 days</span>
           </motion.div>
         </div>
 
-        {/* ═══════ SECTION 2 — DON'T MISS ═══════ */}
-        <motion.div className="d-section" variants={fadeUp}>
-          <h3 className="d-section-title">DON'T MISS</h3>
-          <div className="d-featured-card d-card">
-            {featuredEvent ? (
-              <>
-                <div className="d-featured-header">
-                  <span className="d-card-label">
-                    THIS WEEK'S FEATURED EVENT
-                  </span>
-                  <span className="d-badge">
-                    {new Date(featuredEvent.date) > new Date()
-                      ? "UPCOMING"
-                      : "LIVE"}
-                  </span>
-                </div>
-                <h2 className="d-featured-title">{featuredEvent.title}</h2>
-                <p className="d-featured-date">
-                  {formatEventDate(featuredEvent.date)} ·{" "}
-                  {formatEventTime(featuredEvent.date)}
-                </p>
-                <p className="d-featured-desc">{featuredEvent.description}</p>
-                <button className="d-btn">JOIN</button>
-              </>
-            ) : (
-              <>
-                <span className="d-card-label">
-                  THIS WEEK'S FEATURED EVENT
-                </span>
-                <h2 className="d-featured-title">No featured events</h2>
-                <p className="d-featured-desc">
-                  Check back soon — new events are added regularly.
-                </p>
-              </>
-            )}
+        {/* ═══════ MINI PERFORMANCE GRAPH ═══════ */}
+        <motion.div className="d-card d-graph-card" variants={fadeUp}>
+          <span className="d-card-label">YOUR LAST 7 DAYS</span>
+          <div className="d-graph-container">
+            <svg width="100%" height="60" viewBox="0 0 280 60" preserveAspectRatio="none">
+              {graphPath && (
+                <motion.path
+                  d={graphPath}
+                  fill="none"
+                  stroke="#8B5CF6"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                />
+              )}
+              {graphDots.map((dot, i) => (
+                <motion.circle
+                  key={i}
+                  cx={dot.x}
+                  cy={dot.y}
+                  r="3"
+                  fill="#8B5CF6"
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.15 * i + 0.5 }}
+                />
+              ))}
+            </svg>
+            <div className="d-graph-labels">
+              {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+                <span key={i} className="d-graph-day">{d}</span>
+              ))}
+            </div>
           </div>
         </motion.div>
 
-        {/* ═══════ SECTION 3 — RECOMMENDED FOR YOU ═══════ */}
-        <motion.div className="d-section" variants={fadeUp}>
-          <h3 className="d-section-title">RECOMMENDED FOR YOU</h3>
-          {communities.length > 0 ? (
-            <div className="d-community-scroll">
-              {communities.map((c) => (
+        {/* ═══════ BOTTOM ROW: RECOMMENDED + THIS WEEK ═══════ */}
+        <div className="d-bottom-row">
+          {/* ═══════ RECOMMENDED FOR YOU ═══════ */}
+          <motion.div className="d-section d-section-compact" variants={fadeUp}>
+            <h3 className="d-section-title">RECOMMENDED FOR YOU</h3>
+            <div className="d-community-grid">
+              {displayCommunities.map((c) => (
                 <div key={c.id} className="d-card d-community-card">
-                  {c.category && (
-                    <span className="d-community-tag">{c.category}</span>
-                  )}
-                  <h4 className="d-community-name">{c.name}</h4>
-                  <p className="d-community-desc">{c.description}</p>
-                  <div className="d-community-meta">
-                    <span className="d-community-stat">
-                      ⭐ {Number(c.rating).toFixed(1)}
-                    </span>
-                    <span className="d-community-stat">
-                      {c.members_count} members
-                    </span>
+                  <div className="d-community-info">
+                    <h4 className="d-community-name">{c.name}</h4>
+                    <p className="d-community-desc">{c.description}</p>
+                    <div className="d-community-meta">
+                      <span className="d-community-stat">★ {Number(c.rating).toFixed(1)}</span>
+                      <span className="d-community-stat">{c.members_count} members</span>
+                    </div>
                   </div>
-                  <button className="d-btn d-btn-sm">JOIN</button>
+                  <button className="d-btn d-btn-sm d-btn-outline-purple">JOIN</button>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="d-card">
-              <p className="d-empty-text">
-                Communities are launching soon.
-              </p>
-            </div>
-          )}
-        </motion.div>
+          </motion.div>
 
-        {/* ═══════ SECTION 4 — THIS WEEK EVENTS ═══════ */}
-        <motion.div className="d-section" variants={fadeUp}>
-          <h3 className="d-section-title">THIS WEEK</h3>
-          {weekEvents.length > 0 ? (
-            <div className="d-row d-row-events">
-              {weekEvents.map((ev) => (
-                <div key={ev.id} className="d-card d-event-card">
-                  <span className="d-card-label">EVENT</span>
-                  <h4 className="d-event-title">{ev.title}</h4>
-                  <p className="d-event-date">
-                    {formatEventDate(ev.date)} · {formatEventTime(ev.date)}
-                  </p>
-                  <button className="d-btn d-btn-sm">JOIN</button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="d-card">
-              <p className="d-empty-text">No events this week.</p>
-            </div>
-          )}
-        </motion.div>
-
-        {/* ═══════ SECTION 5 — PROGRESSION ═══════ */}
-        <motion.div className="d-section" variants={fadeUp}>
-          <h3 className="d-section-title">YOUR PROGRESSION</h3>
-          <div className="d-card d-card-wide">
-            <div className="d-timeline">
-              {PROGRESSION_STEPS.map((step, i) => {
-                const reached = streak >= step;
-                return (
-                  <div key={step} className="d-timeline-step">
-                    {i > 0 && (
-                      <div
-                        className={`d-timeline-line${
-                          streak >= step ? " d-timeline-line-active" : ""
-                        }`}
-                      />
-                    )}
-                    <div
-                      className={`d-timeline-dot${
-                        reached ? " d-timeline-dot-active" : ""
-                      }`}
-                    />
-                    <span className="d-timeline-label">Day {step}</span>
+          {/* ═══════ THIS WEEK ═══════ */}
+          <motion.div className="d-section d-section-compact" variants={fadeUp}>
+            <h3 className="d-section-title">THIS WEEK</h3>
+            <div className="d-card d-events-compact">
+              {weekEvents.length > 0 ? (
+                weekEvents.slice(0, 2).map((ev) => (
+                  <div key={ev.id} className="d-event-item">
+                    <div className="d-event-item-left">
+                      <h4 className="d-event-item-title">{ev.title}</h4>
+                      <span className="d-event-item-date">
+                        {formatEventDate(ev.date)} · {formatEventTime(ev.date)}
+                      </span>
+                      {ev.description && (
+                        <p className="d-event-item-desc">{ev.description}</p>
+                      )}
+                    </div>
+                    <button className="d-text-btn">Join</button>
                   </div>
-                );
-              })}
+                ))
+              ) : (
+                <p className="d-empty-text">No events this week.</p>
+              )}
             </div>
-          </div>
-        </motion.div>
-
-        {/* ── Check-in strip ── */}
-        <motion.div className="d-checkin-strip" variants={fadeUp}>
-          <div className="d-checkin-info">
-            <span className="d-card-label">TODAY'S CHECK-IN</span>
-            <span className="d-checkin-focus">{focus || "—"}</span>
-          </div>
-          <button
-            className="d-btn"
-            onClick={handleCheckIn}
-            disabled={checking || checkedInToday}
-          >
-            {checking
-              ? "RECORDING…"
-              : checkedInToday
-              ? "✓ Checked in today"
-              : "START TODAY"}
-          </button>
-        </motion.div>
+          </motion.div>
+        </div>
       </motion.div>
     </DashboardLayout>
   );

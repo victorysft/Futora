@@ -7,17 +7,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
 
 :root {
-  --d-bg: #0A0A0C;
+  --d-bg: #0B0F19;
   --d-sidebar: #060608;
   --d-border: rgba(255, 255, 255, 0.06);
   --d-text: #FFFFFF;
-  --d-text-muted: rgba(255, 255, 255, 0.38);
-  --d-text-dim: rgba(255, 255, 255, 0.22);
-  --d-card-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0) 100%),
-    #0A0A0A;
-  --d-card-border: rgba(255, 255, 255, 0.08);
-  --d-radius: 14px;
+  --d-text-muted: rgba(255, 255, 255, 0.6);
+  --d-text-dim: rgba(255, 255, 255, 0.4);
+  --d-card-bg: rgba(255, 255, 255, 0.03);
+  --d-card-border: rgba(255, 255, 255, 0.06);
+  --d-purple: #8B5CF6;
+  --d-purple-hover: #A78BFA;
+  --d-purple-glow: rgba(139, 92, 246, 0.1);
+  --d-radius: 16px;
   --d-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -32,6 +33,7 @@
   color: var(--d-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 .d-loading {
@@ -106,7 +108,7 @@
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--d-text-muted);
+  color: rgba(255, 255, 255, 0.5);
   text-align: left;
   text-decoration: none;
   cursor: pointer;
@@ -114,13 +116,13 @@
 }
 
 .d-nav-item:hover {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.04);
 }
 
 .d-nav-active {
-  color: rgba(255, 255, 255, 0.88);
-  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(139, 92, 246, 0.1);
 }
 
 .d-sidebar-bottom {
@@ -154,6 +156,8 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background: var(--d-bg);
+  overflow-x: hidden;
 }
 
 /* ── TOPBAR ── */
@@ -211,68 +215,221 @@
    ═══════════════════════════════════════════ */
 .d-content {
   flex: 1;
-  max-width: 1200px;
+  max-width: 1440px;
   width: 100%;
   margin: 0 auto;
-  padding: 2rem 2.5rem 4rem;
+  padding: 2rem 2.5rem;
   display: flex;
   flex-direction: column;
-  gap: 2.25rem;
-}
-
-/* ── Daily quote ── */
-.d-quote {
-  font-size: 0.78rem;
-  font-weight: 400;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.3);
-  letter-spacing: 0.02em;
-  margin: 0;
-  padding: 0;
+  gap: 1.5rem;
+  height: calc(100vh - 64px);
+  overflow: hidden;
 }
 
 /* ═══════════════════════════════════════════
-   GLASS CARDS — same language as Login
+   HERO SECTION
+   ═══════════════════════════════════════════ */
+.d-hero {
+  background: var(--d-card-bg);
+  border: 1px solid var(--d-card-border);
+  border-radius: var(--d-radius);
+  padding: 2rem 2.5rem;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.d-hero-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 3rem;
+}
+
+.d-hero-left {
+  flex: 1;
+}
+
+.d-hero-greeting {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--d-text);
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.d-hero-journey {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--d-text-muted);
+  margin: 0 0 1.5rem;
+  letter-spacing: 0.01em;
+}
+
+.d-hero-focus {
+  color: var(--d-purple);
+  font-weight: 600;
+}
+
+.d-hero-xp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 360px;
+}
+
+.d-hero-xp-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.d-hero-xp-fill {
+  height: 100%;
+  background: var(--d-purple);
+  border-radius: 3px;
+  box-shadow: 0 0 12px var(--d-purple-glow);
+  position: relative;
+}
+
+.d-hero-xp-text {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--d-text-dim);
+  letter-spacing: 0.08em;
+}
+
+.d-hero-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.d-hero-streak {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 2rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+}
+
+/* ── Animated SVG Flame ── */
+.d-hero-flame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: flameFloat 2.5s infinite ease-in-out;
+  filter: drop-shadow(0 0 12px rgba(255, 140, 0, 0.25));
+}
+
+.d-hero-flame svg {
+  display: block;
+}
+
+@keyframes flameFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.04);
+  }
+}
+
+.d-hero-streak-num {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--d-text);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.d-hero-streak-label {
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--d-text-dim);
+}
+
+.d-hero-last-checkin {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--d-text-dim);
+  letter-spacing: 0.05em;
+}
+
+/* Hero CTA button */
+.d-hero .d-btn {
+  margin-top: 1rem;
+}
+
+/* ═══════════════════════════════════════════
+   GLASS CARDS
    ═══════════════════════════════════════════ */
 .d-card {
   background: var(--d-card-bg);
   border: 1px solid var(--d-card-border);
   border-radius: var(--d-radius);
-  padding: 1.75rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  box-shadow:
-    0 40px 120px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  transition: border-color 0.3s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.d-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.2), transparent);
+  border-radius: 1px;
+  pointer-events: none;
 }
 
 .d-card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(139, 92, 246, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Card label ── */
 .d-card-label {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.5em;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.28);
+  color: var(--d-text-dim);
   margin: 0;
   font-family: var(--d-font);
 }
 
 /* ── Card sub text ── */
 .d-card-sub {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 400;
   color: var(--d-text-muted);
   letter-spacing: 0.05em;
 }
 
 /* ═══════════════════════════════════════════
-   SECTION 1 — TOP STRIP METRICS
+   STAT CARDS
    ═══════════════════════════════════════════ */
 .d-row {
   display: grid;
@@ -286,10 +443,17 @@
 .d-card-metric {
   align-items: flex-start;
   min-height: 140px;
+  position: relative;
+  overflow: hidden;
+}
+
+.d-card-metric:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
 }
 
 .d-metric-num {
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   font-weight: 700;
   line-height: 1;
   color: var(--d-text);
@@ -297,36 +461,45 @@
   margin: auto 0 0.25rem;
 }
 
-/* ═══════════════════════════════════════════
-   XP BAR
-   ═══════════════════════════════════════════ */
-.d-xp-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
+/* Consistency card with circular progress */
+.d-card-metric-consistency {
+  align-items: center;
+  justify-content: center;
 }
 
-.d-xp-track {
+.d-consistency-circle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin: 0.5rem 0;
+}
+
+.d-consistency-text {
+  position: absolute;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--d-text);
+  letter-spacing: -0.02em;
+}
+
+/* ── Metric progress bar ── */
+.d-metric-bar {
   width: 100%;
   height: 3px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 2px;
   overflow: hidden;
+  margin-top: auto;
 }
 
-.d-xp-fill {
+.d-metric-bar-fill {
   height: 100%;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--d-purple);
   border-radius: 2px;
-  transition: width 0.6s ease;
-}
-
-.d-xp-text {
-  font-size: 0.62rem;
-  font-weight: 400;
-  color: var(--d-text-dim);
-  letter-spacing: 0.08em;
+  transition: width 0.8s ease-out;
 }
 
 /* ═══════════════════════════════════════════
@@ -338,334 +511,401 @@
   gap: 1rem;
 }
 
+.d-section-compact {
+  gap: 0.75rem;
+}
+
 .d-section-title {
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.5em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.28);
+  color: var(--d-text-dim);
   margin: 0;
   font-family: var(--d-font);
 }
 
-/* ═══════════════════════════════════════════
-   SECTION 2 — FEATURED EVENT (DON'T MISS)
-   ═══════════════════════════════════════════ */
-.d-featured-card {
-  padding: 2.25rem;
-}
-
-.d-featured-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
-.d-badge {
-  font-size: 0.58rem;
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  padding: 0.3rem 0.75rem;
-}
-
-.d-featured-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--d-text);
-  margin: 0.25rem 0 0.15rem;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-}
-
-.d-featured-date {
-  font-size: 0.78rem;
-  font-weight: 400;
-  color: var(--d-text-muted);
-  margin: 0 0 0.5rem;
-  letter-spacing: 0.02em;
-}
-
-.d-featured-desc {
-  font-size: 0.85rem;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.55);
-  margin: 0 0 1.25rem;
-  line-height: 1.55;
-  max-width: 560px;
+/* Bottom row with two sections side by side */
+.d-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ═══════════════════════════════════════════
-   BUTTON — same style as login-cta-btn
+   BUTTON STYLES
    ═══════════════════════════════════════════ */
 .d-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.72rem 1.6rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  padding: 0.7rem 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   font-family: var(--d-font);
-  font-size: 0.7rem;
-  font-weight: 500;
-  letter-spacing: 0.28em;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
-  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   align-self: flex-start;
 }
 
 .d-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
 }
 
 .d-btn:disabled {
-  opacity: 0.35;
+  opacity: 0.4;
   cursor: default;
 }
 
 .d-btn-sm {
-  padding: 0.5rem 1.1rem;
-  font-size: 0.62rem;
-  letter-spacing: 0.25em;
+  padding: 0.5rem 1rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+}
+
+.d-btn-large {
+  padding: 0.9rem 2rem;
+  font-size: 0.7rem;
+}
+
+.d-btn-purple {
+  background: var(--d-purple);
+  border-color: transparent;
+  color: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+  font-weight: 600;
+}
+
+.d-btn-purple:hover:not(:disabled) {
+  background: var(--d-purple-hover);
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+.d-btn-outline-purple {
+  background: transparent;
+  border: 1px solid var(--d-purple);
+  color: var(--d-purple);
+}
+
+.d-btn-outline-purple:hover:not(:disabled) {
+  background: var(--d-purple);
+  border-color: var(--d-purple);
+  color: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+  transform: translateY(-1px);
 }
 
 /* ═══════════════════════════════════════════
-   SECTION 3 — COMMUNITIES (RECOMMENDED)
+   LIVE ACTIVITY STRIP
    ═══════════════════════════════════════════ */
-.d-community-scroll {
+.d-live-strip {
   display: flex;
-  gap: 1rem;
-  overflow-x: auto;
-  padding-bottom: 0.5rem;
-  scroll-snap-type: x mandatory;
-
-  /* Hide scrollbar */
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-.d-community-scroll::-webkit-scrollbar {
-  display: none;
+.d-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  animation: livePulse 2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.d-live-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.d-live-divider {
+  width: 1px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.d-live-stat {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--d-text-muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════
+   MINI PERFORMANCE GRAPH
+   ═══════════════════════════════════════════ */
+.d-graph-card {
+  position: relative;
+  gap: 0.75rem;
+}
+
+.d-graph-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.d-graph-container svg {
+  display: block;
+}
+
+.d-graph-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.d-graph-day {
+  font-size: 0.55rem;
+  font-weight: 500;
+  color: var(--d-text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════
+   RECOMMENDED COMMUNITIES
+   ═══════════════════════════════════════════ */
+.d-community-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
 }
 
 .d-community-card {
-  flex: 0 0 calc(33.333% - 0.67rem);
-  min-width: 260px;
-  scroll-snap-align: start;
-  gap: 0.65rem;
+  flex: 1;
+  gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  padding: 1.25rem;
+  min-width: 0;
 }
 
-.d-community-tag {
-  font-size: 0.55rem;
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 5px;
-  padding: 0.25rem 0.6rem;
-  align-self: flex-start;
+.d-community-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.d-community-card:hover .d-btn-outline-purple {
+  background: var(--d-purple);
+  border-color: var(--d-purple);
+  color: #FFFFFF;
+}
+
+.d-community-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
 }
 
 .d-community-name {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--d-text);
   margin: 0;
   letter-spacing: -0.01em;
 }
 
 .d-community-desc {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--d-text-muted);
   margin: 0;
-  line-height: 1.45;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 2.15rem;
 }
 
 .d-community-meta {
   display: flex;
   align-items: center;
   gap: 1rem;
+  margin-top: 0.25rem;
 }
 
 .d-community-stat {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 400;
   color: var(--d-text-muted);
   letter-spacing: 0.02em;
 }
 
 /* ═══════════════════════════════════════════
-   SECTION 4 — THIS WEEK EVENTS
+   THIS WEEK EVENTS (MINIMAL LIST)
    ═══════════════════════════════════════════ */
-.d-row-events {
-  grid-template-columns: repeat(3, 1fr);
+.d-events-compact {
+  padding: 0;
+  gap: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.d-event-card {
-  gap: 0.5rem;
+.d-event-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.2s ease;
 }
 
-.d-event-title {
-  font-size: 0.95rem;
+.d-event-item:last-child {
+  border-bottom: none;
+}
+
+.d-event-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.d-event-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.d-event-item-title {
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--d-text);
   margin: 0;
   letter-spacing: -0.01em;
-  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.d-event-date {
-  font-size: 0.72rem;
+.d-event-item-date {
+  font-size: 0.65rem;
   font-weight: 400;
-  color: var(--d-text-muted);
-  margin: 0 0 0.35rem;
+  color: var(--d-text-dim);
   letter-spacing: 0.02em;
 }
 
-/* ═══════════════════════════════════════════
-   SECTION 5 — PROGRESSION TIMELINE
-   ═══════════════════════════════════════════ */
-.d-card-wide {
-  width: 100%;
-}
-
-.d-timeline {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  margin-top: 0.75rem;
-  padding: 0.5rem 0 0.25rem;
-}
-
-.d-timeline-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-  flex: 1;
-}
-
-.d-timeline-step:first-child {
-  align-items: flex-start;
-}
-
-.d-timeline-step:last-child {
-  align-items: flex-end;
-}
-
-.d-timeline-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
-  background: transparent;
-  position: relative;
-  z-index: 2;
-}
-
-.d-timeline-dot-active {
-  border-color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.d-timeline-label {
-  font-size: 0.62rem;
+.d-event-item-desc {
+  font-size: 0.68rem;
   font-weight: 400;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--d-text-dim);
-  margin-top: 0.65rem;
+  color: var(--d-text-muted);
+  margin: 0;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.d-timeline-line {
-  position: absolute;
-  top: 5px;
-  right: 50%;
-  width: 100%;
-  height: 1.5px;
-  background: rgba(255, 255, 255, 0.06);
-  z-index: 1;
-  transform: translateX(-50%);
-}
-
-.d-timeline-line-active {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* ═══════════════════════════════════════════
-   CHECK-IN STRIP
-   ═══════════════════════════════════════════ */
-.d-checkin-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  background: var(--d-card-bg);
-  border: 1px solid var(--d-card-border);
-  border-radius: var(--d-radius);
-  padding: 1.25rem 1.75rem;
-  box-shadow:
-    0 40px 120px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-.d-checkin-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.d-checkin-focus {
-  font-size: 0.95rem;
+/* ── Text join button ── */
+.d-text-btn {
+  background: none;
+  border: none;
+  font-family: var(--d-font);
+  font-size: 0.68rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.82);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--d-purple);
+  cursor: pointer;
+  padding: 0.3rem 0;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.d-text-btn:hover {
+  color: var(--d-purple-hover);
 }
 
 /* ── Empty state text ── */
 .d-empty-text {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 400;
   color: var(--d-text-muted);
   margin: 0;
   letter-spacing: 0.01em;
+  padding: 1.5rem;
+  text-align: center;
 }
 
 /* ═══════════════════════════════════════════
    RESPONSIVE — TABLET
    ═══════════════════════════════════════════ */
 @media (max-width: 1100px) {
+  .d-content {
+    padding: 1.5rem 2rem;
+    gap: 1.25rem;
+    height: auto;
+    overflow: auto;
+  }
+
+  .d-hero {
+    padding: 1.75rem 2rem;
+  }
+
+  .d-hero-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .d-hero-right {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .d-row-metrics {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .d-row-events {
-    grid-template-columns: repeat(2, 1fr);
+  .d-bottom-row {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
   }
 
-  .d-community-card {
-    flex: 0 0 calc(50% - 0.5rem);
-    min-width: 220px;
+  .d-community-grid {
+    flex-direction: column;
   }
 
-  .d-content {
-    padding: 1.75rem 2rem 3rem;
+  .d-live-strip {
+    flex-wrap: wrap;
+  }
+
+  .d-metric-num {
+    font-size: 2rem;
   }
 }
 
@@ -686,34 +926,41 @@
   }
 
   .d-content {
-    padding: 1.5rem 1.25rem 3rem;
-    gap: 1.75rem;
+    padding: 1rem 1.25rem;
+    gap: 1rem;
+    height: auto;
+  }
+
+  .d-hero {
+    padding: 1.5rem;
+  }
+
+  .d-hero-greeting {
+    font-size: 1.5rem;
+  }
+
+  .d-hero-streak-num {
+    font-size: 2rem;
   }
 
   .d-row-metrics {
     grid-template-columns: 1fr 1fr;
   }
 
-  .d-row-events {
-    grid-template-columns: 1fr;
+  .d-card-metric {
+    min-height: 130px;
   }
 
   .d-metric-num {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
 
-  .d-community-card {
-    flex: 0 0 80%;
-    min-width: 200px;
+  .d-bottom-row {
+    grid-template-columns: 1fr;
   }
 
-  .d-checkin-strip {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .d-featured-title {
-    font-size: 1.2rem;
+  .d-event-item {
+    gap: 0.5rem;
   }
 }
 
@@ -724,8 +971,12 @@
   }
 
   .d-content {
-    padding: 1.25rem 1rem 2.5rem;
-    gap: 1.5rem;
+    padding: 1rem;
+    gap: 0.875rem;
+  }
+
+  .d-hero {
+    padding: 1.25rem;
   }
 
   .d-card {
@@ -738,5 +989,17 @@
 
   .d-card-metric {
     min-height: auto;
+  }
+
+  .d-hero-greeting {
+    font-size: 1.35rem;
+  }
+
+  .d-hero-journey {
+    font-size: 0.85rem;
+  }
+
+  .d-hero-streak {
+    padding: 1.25rem 1.5rem;
   }
 }

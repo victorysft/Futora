@@ -129,6 +129,14 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
+    // Clean up presence session before signing out
+    if (user) {
+      try {
+        await supabase.from("user_sessions").delete().eq("user_id", user.id);
+      } catch {
+        /* best-effort cleanup */
+      }
+    }
     return supabase.auth.signOut();
   };
 
