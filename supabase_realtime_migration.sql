@@ -1,6 +1,7 @@
 -- ============================================
 -- FUTORA — REALTIME GLOBAL LIVE SYSTEM
--- Run this migration in your Supabase SQL Editor
+-- ⚠️  RUN supabase_schema.sql FIRST!
+-- (Creates profiles, goals, checkins, events, communities tables)
 -- ============================================
 
 -- ─────────────────────────────────────────────
@@ -76,58 +77,92 @@ ALTER PUBLICATION supabase_realtime ADD TABLE live_activity;
 
 
 -- ─────────────────────────────────────────────
--- 3) CHECKINS — Add date column + unique constraint
+-- 3) CHECKINS — Add date column (if table exists)
 -- ─────────────────────────────────────────────
--- Add a date column for calendar-day dedup
-ALTER TABLE checkins
-  ADD COLUMN IF NOT EXISTS date date;
-
--- Backfill existing rows
-UPDATE checkins
-  SET date = (created_at AT TIME ZONE 'UTC')::date
-  WHERE date IS NULL;
-
--- Unique: one check-in per user per calendar day
-CREATE UNIQUE INDEX IF NOT EXISTS idx_checkins_user_date
-  ON checkins (user_id, date);
-
--- Index for fast "today's checkins" count
-CREATE INDEX IF NOT EXISTS idx_checkins_date
-  ON checkins (date);
+-- Only run if checkins table exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'checkins') THEN
+    -- Add date column for calendar-day dedup
+    ALTER TABLE checkins ADD COLUMN IF NOT EXISTS date date;
+    
+    -- Backfill existing rows
+    UPDATE checkins
+      SET date = (created_at AT TIME ZONE 'UTC')::date
+      WHERE date IS NULL;
+    
+    -- Unique: one check-in per user per calendar day
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_checkins_user_date
+      ON checkins (user_id, date);
+    
+    -- Index for fast "today's checkins" count
+    CREATE INDEX IF NOT EXISTS idx_checkins_date
+      ON checkins (date);
+    
+    -- Enable realtime on checkins
+    ALTER PUBLICATION supabase_realtime ADD TABLE checkins;
+    
+    RAISE NOTICE '✓ Checkins table updated';
+  ELSE
+    RAISE WARNING '⚠ Checkins table does not exist - run supabase_schema.sql first';
+  END IF;
+END $$;
 
 -- Allow anyone to count today's checkins (aggregated read)
--- (existing RLS lets users read their own; add public SELECT for count)
-CREATE POLICY "Checkins count is publicly readable"
-  ON checkins FOR SELECT
-  USING (true);
-
--- Enable realtime on checkins
-ALTER PUBLICATION supabase_realtime ADD TABLE checkins;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'checkins') THEN
+    EXECUTE 'CREATE POLICY IF NOT EXISTS "Checkins count is publicly readable"
+      ON checkins FOR SELECT
+      USING (true)';
+  END IF;
+END $$;
 
 
 -- ─────────────────────────────────────────────
--- 4) PROFILES — Add index + enable realtime
+-- 4) PROFILES — Add index + enable realtime (if exists)
 -- ─────────────────────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_profiles_xp
-  ON profiles (xp DESC);
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'profiles') THEN
+    CREATE INDEX IF NOT EXISTS idx_profiles_xp
+      ON profiles (xp DESC);
+    
+    -- Add last_check_in column if missing
+    ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_check_in date;
+    
+    -- Enable realtime on profiles
+    ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+    
+    RAISE NOTICE '✓ Profiles table updated';
+  ELSE
+    RAISE WARNING '⚠ Profiles table does not exist - run supabase_schema.sql first';
+  END IF;
+END $$;
 
 -- Allow public read of profiles for leaderboard
-CREATE POLICY "Profiles are publicly readable for leaderboard"
-  ON profiles FOR SELECT
-  USING (true);
-
--- Add last_check_in column if missing
-ALTER TABLE profiles
-  ADD COLUMN IF NOT EXISTS last_check_in date;
-
--- Enable realtime on profiles
-ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'profiles') THEN
+    EXECUTE 'CREATE POLICY IF NOT EXISTS "Profiles are publicly readable for leaderboard"
+      ON profiles FOR SELECT
+      USING (true)';
+  END IF;
+END $$;
 
 
 -- ─────────────────────────────────────────────
--- 5) EVENTS — Enable realtime
+-- 5) EVENTS — Enable realtime (if exists)
 -- ─────────────────────────────────────────────
-ALTER PUBLICATION supabase_realtime ADD TABLE events;
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'events') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE events;
+    RAISE NOTICE '✓ Events table enabled for realtime';
+  ELSE
+    RAISE WARNING '⚠ Events table does not exist - this is optional';
+  END IF;
+END $$;
 
 
 -- ─────────────────────────────────────────────
