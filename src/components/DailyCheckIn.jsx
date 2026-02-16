@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { useAuth } from "../hooks/useAuth";
 
 export default function DailyCheckIn({ userId, goalId, existingCheckin, onSaved }) {
+  const { profile } = useAuth();
   const [didWork, setDidWork] = useState(existingCheckin?.completed ?? true);
   const [minutesWorked, setMinutesWorked] = useState(existingCheckin?.minutes_worked ?? 30);
   const [energyLevel, setEnergyLevel] = useState(existingCheckin?.energy_level ?? 5);
@@ -43,6 +45,15 @@ export default function DailyCheckIn({ userId, goalId, existingCheckin, onSaved 
       setError(insertError.message);
       setSaving(false);
       return;
+    }
+
+    // Increment country activity for heatmap
+    if (profile?.country_code) {
+      supabase.rpc('increment_country_activity', {
+        p_country_code: profile.country_code,
+        p_country_name: profile.country || profile.country_code,
+        p_activity_type: 'checkin',
+      }).catch(() => {});
     }
 
     onSaved(data);

@@ -53,12 +53,14 @@ function pulseColor(type) {
 export default function GlobalLive() {
   const stats = useGlobalStats();
   const { activities } = useGlobalActivity();
-  const { activityPulses } = useCountryHeat();
+  const [view, setView] = useState("live"); // "live" | "heatmap"
+
+  // Country heat with mode toggle
+  const { countryHeat, mostActiveCountry: heatMostActive, activityPulses } = useCountryHeat(view);
   const { topCountryToday, activeCountries: countryList } = useCountryStats();
   const { heatmapData } = useActivityHeatmap();
 
   const [buildersCount, buildersChanged] = useCountUp(stats.onlineNow);
-  const [view, setView] = useState("live"); // "live" | "heatmap" (future)
 
   // ── Time display ───
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -213,7 +215,7 @@ export default function GlobalLive() {
             <div className="gl-globe-container" title="Drag to rotate">
               <Globe3D
                 pulses={view === "live" ? pulses : []}
-                heatmapData={view === "heatmap" ? heatmapData : []}
+                heatmapData={view === "heatmap" ? [...countryHeat.values()] : (heatmapData || [])}
                 onlineCount={stats.onlineNow}
               />
             </div>

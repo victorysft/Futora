@@ -20,7 +20,7 @@ const GLOBE_IMG = "https://unpkg.com/three-globe@2.31.1/example/img/earth-blue-m
 const NIGHT_IMG = "https://unpkg.com/three-globe@2.31.1/example/img/earth-night.jpg";
 const CLOUDS_IMG = "https://unpkg.com/three-globe@2.31.1/example/img/earth-clouds.png";
 
-function Globe3D({ pulses = [], onlineCount = 0 }) {
+function Globe3D({ pulses = [], heatmapData = [], onlineCount = 0 }) {
   const globeRef = useRef();
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
@@ -60,8 +60,8 @@ function Globe3D({ pulses = [], onlineCount = 0 }) {
     }
   }, []);
 
-  // Convert pulses to points data
-  const pointsData = pulses.slice(0, 100).map((p) => ({
+  // Pulse points (live mode)
+  const pulsePoints = pulses.slice(0, 100).map((p) => ({
     lat: p.lat,
     lng: p.lng,
     color: p.color || "#8B5CF6",
@@ -69,6 +69,22 @@ function Globe3D({ pulses = [], onlineCount = 0 }) {
     radius: 0.35,
     age: Date.now() - (p.startTime || Date.now()),
   }));
+
+  // Heatmap points (heatmap mode)
+  const heatmapPoints = heatmapData.filter(d => d.lat && d.lng).map((d) => {
+    const maxScore = Math.max(...heatmapData.map(h => h.score || 0), 1);
+    const intensity = Math.min((d.score || 0) / maxScore, 1);
+    return {
+      lat: d.lat,
+      lng: d.lng,
+      color: intensity > 0.7 ? "#D4AF37" : intensity > 0.3 ? "#8B5CF6" : "#10B981",
+      altitude: 0.005 + intensity * 0.03,
+      radius: 0.3 + intensity * 0.8,
+      age: 0,
+    };
+  });
+
+  const pointsData = pulsePoints.length > 0 ? pulsePoints : heatmapPoints;
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>

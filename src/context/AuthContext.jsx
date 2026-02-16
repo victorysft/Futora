@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { ensureLocation } from "../utils/locationAcquisition";
 
 export const AuthContext = createContext(null);
 
@@ -30,6 +31,11 @@ export function AuthProvider({ children }) {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setAuthLoading(false);
+
+      // Ensure location is set on login
+      if (_event === 'SIGNED_IN' && nextSession?.user?.id) {
+        ensureLocation(nextSession.user.id).catch(() => {});
+      }
     });
 
     return () => {
@@ -45,7 +51,7 @@ export function AuthProvider({ children }) {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, identity, xp, level, streak, last_check_in, created_at, becoming, focus, commitment_level, age, location, profile_completed, streak_start_date")
+      .select("id, identity, xp, level, streak, last_check_in, created_at, becoming, focus, commitment_level, age, location, profile_completed, streak_start_date, country, country_code, city, latitude, longitude, timezone, is_private, followers_count, following_count")
       .eq("id", user.id)
       .maybeSingle();
 

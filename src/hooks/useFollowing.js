@@ -19,6 +19,7 @@ import { supabase } from "../supabaseClient";
 export function useFollowing(userId) {
   const [following, setFollowing] = useState([]);
   const [followers, setFollowers] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [friendsOnline, setFriendsOnline] = useState(0);
   const [followingLeaderboard, setFollowingLeaderboard] = useState([]);
   const [followingFeed, setFollowingFeed] = useState([]);
@@ -33,7 +34,8 @@ export function useFollowing(userId) {
       const { data } = await supabase
         .from("follows")
         .select("following_id")
-        .eq("follower_id", userId);
+        .eq("follower_id", userId)
+        .eq("status", "accepted");
 
       const ids = (data || []).map((f) => f.following_id);
       setFollowingIds(new Set(ids));
@@ -57,7 +59,7 @@ export function useFollowing(userId) {
       setFollowingLeaderboard(profiles || []);
 
       // Fetch friends online
-      const cutoff = new Date(Date.now() - 30_000).toISOString();
+      const cutoff = new Date(Date.now() - 60_000).toISOString();
       const { count } = await supabase
         .from("user_sessions")
         .select("id", { count: "exact", head: true })
@@ -101,7 +103,8 @@ export function useFollowing(userId) {
       const { data } = await supabase
         .from("follows")
         .select("follower_id")
-        .eq("following_id", userId);
+        .eq("following_id", userId)
+        .eq("status", "accepted");
 
       const ids = (data || []).map((f) => f.follower_id);
       if (ids.length === 0) {
@@ -161,6 +164,70 @@ export function useFollowing(userId) {
     [userId, fetchFollowing]
   );
 
+  // ── Fetch pending follow requests (people wanting to follow you) ──
+  const fetchPendingRequests = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const { data } = await supabase
+        .from("follows")
+        .select("follower_id, created_at")
+        .eq("following_id", userId)
+        .eq("status", "pending");
+
+      const ids = (data || []).map((f) => f.follower_id);
+      if (ids.length === 0) {
+        setPendingRequests([]);
+        return;
+      }
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, identity, becoming, xp, level, streak")
+        .in("id", ids);
+
+      setPendingRequests(profiles || []);
+    } catch (err) {
+      console.error("[useFollowing] pending requests error:", err);
+    }
+  }, [userId]);
+
+  // ── Accept follow request ──
+  const acceptFollowRequest = useCallback(
+    async (followerId) => {
+      if (!userId) return;
+      try {
+        await supabase
+          .from("follows")
+          .update({ status: "accepted" })
+          .eq("follower_id", followerId)
+          .eq("following_id", userId);
+        fetchPendingRequests();
+        fetchFollowers();
+      } catch (err) {
+        console.error("[useFollowing] accept error:", err);
+      }
+    },
+    [userId, fetchPendingRequests, fetchFollowers]
+  );
+
+  // ── Decline follow request ──
+  const declineFollowRequest = useCallback(
+    async (followerId) => {
+      if (!userId) return;
+      try {
+        await supabase
+          .from("follows")
+          .update({ status: "declined" })
+          .eq("follower_id", followerId)
+          .eq("following_id", userId);
+        fetchPendingRequests();
+      } catch (err) {
+        console.error("[useFollowing] decline error:", err);
+      }
+    },
+    [userId, fetchPendingRequests]
+  );
+
   // ── Check if following ──
   const isFollowing = useCallback(
     (targetId) => followingIds.has(targetId),
@@ -174,7 +241,7 @@ export function useFollowing(userId) {
     }
 
     setLoading(true);
-    Promise.all([fetchFollowing(), fetchFollowers()]).finally(() =>
+    Promise.all([fetchFollowing(), fetchFollowers(), fetchPendingRequests()]).finally(() =>
       setLoading(false)
     );
 
@@ -192,6 +259,7 @@ export function useFollowing(userId) {
           ) {
             fetchFollowing();
             fetchFollowers();
+            fetchPendingRequests();
           }
         }
       )
@@ -212,11 +280,12 @@ export function useFollowing(userId) {
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [userId, fetchFollowing, fetchFollowers]);
+  }, [userId, fetchFollowing, fetchFollowers, fetchPendingRequests]);
 
   return {
     following,
     followers,
+    pendingRequests,
     friendsOnline,
     followingLeaderboard,
     followingFeed,
@@ -224,6 +293,8 @@ export function useFollowing(userId) {
     isFollowing,
     follow,
     unfollow,
+    acceptFollowRequest,
+    declineFollowRequest,
     loading,
   };
 }

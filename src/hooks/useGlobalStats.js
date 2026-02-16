@@ -29,13 +29,13 @@ export function useGlobalStats() {
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const todayISO = todayStart.toISOString();
-        const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000).toISOString();
+        const sixtySecondsAgo = new Date(now.getTime() - 60 * 1000).toISOString();
 
-        // Online now: sessions active within last 30s
+        // Online now: sessions active within last 60s
         const { count: onlineCount } = await supabase
           .from("user_sessions")
           .select("*", { count: "exact", head: true })
-          .gte("last_seen", thirtySecondsAgo);
+          .gte("last_seen", sixtySecondsAgo);
 
         // Check-ins today: from live_activity
         const { count: checkInCount } = await supabase
@@ -135,12 +135,12 @@ export function useGlobalStats() {
     async function fetchOnlineCount() {
       try {
         const now = new Date();
-        const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000).toISOString();
+        const sixtySecondsAgo = new Date(now.getTime() - 60 * 1000).toISOString();
         
         const { count } = await supabase
           .from("user_sessions")
           .select("*", { count: "exact", head: true })
-          .gte("last_seen", thirtySecondsAgo);
+          .gte("last_seen", sixtySecondsAgo);
 
         if (mounted) {
           setStats((prev) => ({ ...prev, onlineNow: count || 0 }));

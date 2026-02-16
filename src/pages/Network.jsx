@@ -40,18 +40,21 @@ function feedDescription(type, meta) {
   }
 }
 
-const TABS = ["Discover", "Following", "Followers"];
+const TABS = ["Discover", "Following", "Followers", "Requests"];
 
 export default function Network() {
   const { user } = useAuth();
   const {
     following,
     followers,
+    pendingRequests,
     friendsOnline,
     followingFeed,
     isFollowing,
     follow,
     unfollow,
+    acceptFollowRequest,
+    declineFollowRequest,
     loading: followLoading,
   } = useFollowing(user?.id);
 
@@ -104,7 +107,7 @@ export default function Network() {
         return;
       }
       const ids = following.map((f) => f.id);
-      const cutoff = new Date(Date.now() - 30_000).toISOString();
+      const cutoff = new Date(Date.now() - 60_000).toISOString();
       const { data } = await supabase
         .from("user_sessions")
         .select("user_id")
@@ -123,8 +126,9 @@ export default function Network() {
   const displayedBuilders = useMemo(() => {
     if (activeTab === "Following") return following;
     if (activeTab === "Followers") return followers;
+    if (activeTab === "Requests") return pendingRequests;
     return allBuilders;
-  }, [activeTab, following, followers, allBuilders]);
+  }, [activeTab, following, followers, pendingRequests, allBuilders]);
 
   return (
     <DashboardLayout pageTitle="NETWORK">
@@ -188,6 +192,19 @@ export default function Network() {
               {tab}
               {tab === "Following" && ` (${following.length})`}
               {tab === "Followers" && ` (${followers.length})`}
+              {tab === "Requests" && pendingRequests.length > 0 && (
+                <span style={{ 
+                  background: "#EF4444", 
+                  color: "white", 
+                  borderRadius: "10px", 
+                  padding: "1px 7px", 
+                  fontSize: "0.7rem", 
+                  marginLeft: "6px",
+                  fontWeight: "700"
+                }}>
+                  {pendingRequests.length}
+                </span>
+              )}
             </button>
           ))}
         </motion.div>
@@ -234,14 +251,33 @@ export default function Network() {
                     </div>
                     <button
                       className={`net-follow-btn ${
-                        isFollowed ? "net-follow-btn-following" : "net-follow-btn-follow"
+                        activeTab === "Requests"
+                          ? "net-follow-btn-follow"
+                          : isFollowed
+                          ? "net-follow-btn-following"
+                          : "net-follow-btn-follow"
                       }`}
-                      onClick={() =>
-                        isFollowed ? unfollow(builder.id) : follow(builder.id)
-                      }
+                      onClick={() => {
+                        if (activeTab === "Requests") {
+                          acceptFollowRequest(builder.id);
+                        } else if (isFollowed) {
+                          unfollow(builder.id);
+                        } else {
+                          follow(builder.id);
+                        }
+                      }}
                     >
-                      {isFollowed ? "Following" : "Follow"}
+                      {activeTab === "Requests" ? "Accept" : isFollowed ? "Following" : "Follow"}
                     </button>
+                    {activeTab === "Requests" && (
+                      <button
+                        className="net-follow-btn net-follow-btn-following"
+                        style={{ marginLeft: "6px", opacity: 0.6 }}
+                        onClick={() => declineFollowRequest(builder.id)}
+                      >
+                        Decline
+                      </button>
+                    )}
                   </motion.div>
                 );
               })}

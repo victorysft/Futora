@@ -292,6 +292,15 @@ export default function Dashboard() {
         meta: { streak: newStreak, xp_gained: Math.max(xpGain, 0) },
       });
 
+      // Increment country activity for heatmap
+      if (profile?.country_code) {
+        supabase.rpc('increment_country_activity', {
+          p_country_code: profile.country_code,
+          p_country_name: profile.country || profile.country_code,
+          p_activity_type: 'checkin',
+        }).catch(() => {});
+      }
+
       // If leveled up, insert a separate levelup activity
       if (newLevel > prevLevel) {
         await supabase.from("live_activity").insert({
@@ -299,6 +308,15 @@ export default function Dashboard() {
           type: "levelup",
           meta: { from_level: prevLevel, to_level: newLevel, xp: newXP },
         });
+
+        // Increment country activity for level-up
+        if (profile?.country_code) {
+          supabase.rpc('increment_country_activity', {
+            p_country_code: profile.country_code,
+            p_country_name: profile.country || profile.country_code,
+            p_activity_type: 'levelup',
+          }).catch(() => {});
+        }
       }
 
       await refreshProfile();
