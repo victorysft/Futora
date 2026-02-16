@@ -1,7 +1,17 @@
 -- ════════════════════════════════════════════════════════════
 -- FUTORA — Social & Retention Upgrade Migration
--- Run in Supabase SQL Editor
+-- ⚠️  IMPORTANT: Run supabase_realtime_migration.sql FIRST
+-- (user_sessions table must exist before using presence hooks)
 -- ════════════════════════════════════════════════════════════
+
+-- ⚠️  RUN THIS FIRST TO VERIFY:
+-- SELECT EXISTS (
+--   SELECT FROM information_schema.tables 
+--   WHERE table_schema = 'public' 
+--   AND table_name = 'user_sessions'
+-- ) AS user_sessions_exists;
+-- If FALSE → run supabase_realtime_migration.sql first
+
 
 -- ─────────────────────────────────────────────
 -- 1) FOLLOWS TABLE (Social Layer)
@@ -67,14 +77,16 @@ CREATE POLICY "System can insert rank history"
 
 
 -- ─────────────────────────────────────────────
--- 3) PROFILES — Monetization Prep Columns
+-- 3) PROFILES — Social + Country Columns
 -- ─────────────────────────────────────────────
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS premium_badge   boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS verified        boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS badge_type      text DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS followers_count integer NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS following_count integer NOT NULL DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS following_count integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS country         text DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS country_code    text DEFAULT NULL;
 
 
 -- ─────────────────────────────────────────────
@@ -127,3 +139,33 @@ BEGIN
     SET rank = EXCLUDED.rank, xp = EXCLUDED.xp;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- ─────────────────────────────────────────────
+-- 🔥 DEBUG QUERIES (uncomment to test)
+-- ─────────────────────────────────────────────
+
+-- ✅ 1) Check if user_sessions exists (should be true)
+-- SELECT EXISTS (
+--   SELECT FROM information_schema.tables 
+--   WHERE table_schema = 'public' 
+--   AND table_name = 'user_sessions'
+-- ) AS user_sessions_exists;
+
+-- ✅ 2) Check current online users
+-- SELECT * FROM user_sessions 
+-- WHERE last_seen > NOW() - INTERVAL '30 seconds';
+
+-- ✅ 3) Check if follows table works
+-- SELECT COUNT(*) AS total_follows FROM follows;
+
+-- ✅ 4) Verify profile columns
+-- SELECT 
+--   id, identity, 
+--   followers_count, following_count,
+--   country, country_code,
+--   premium_badge, verified
+-- FROM profiles LIMIT 3;
+
+-- ✅ 5) Test rank history
+-- SELECT * FROM rank_history ORDER BY recorded_at DESC LIMIT 5;
