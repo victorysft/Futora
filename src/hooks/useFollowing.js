@@ -2,19 +2,20 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 
 /**
- * useFollowing — Deterministic follow state machine
+ * useFollowing — Deterministic follow state machine v2
  *
  * States:
- * - none: No follow relationship
+ * - none: No follow relationship (only set after DB confirms)
  * - pending: Follow requested (target is private)
  * - accepted: Following (target is public or approved)
  * - mutual: Friends (both follow each other with accepted status)
+ * - self: Viewing own profile
  *
- * Features:
- * - Optimistic UI with rollback
- * - Realtime subscription
- * - No flickering
- * - Deterministic button states
+ * Guarantees:
+ * - No flicker: optimistic updates are never overwritten by stale DB reads
+ * - No duplicate inserts: guard checks state before inserting
+ * - Upsert with onConflict to handle unique constraint
+ * - Cancel request = unfollow for pending state
  */
 export function useFollowing(userId) {
   const [following, setFollowing] = useState([]);
@@ -24,11 +25,12 @@ export function useFollowing(userId) {
   const [followingLeaderboard, setFollowingLeaderboard] = useState([]);
   const [followingFeed, setFollowingFeed] = useState([]);
   
-  // State machine: Map<targetId, {status: 'none'|'pending'|'accepted'|'mutual', loading: boolean}>
+  // State machine: Map<targetId, {status, loading}>
   const [followStates, setFollowStates] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const channelRef = useRef(null);
-  const optimisticRef = useRef(new Map()); // Track optimistic updates
+  const optimisticRef = useRef(new Map()); // Track optimistic updates — never overwrite these
+  const followingIdsRef = useRef(new Set()); // Track accepted following IDs for feed updates
 
   // ── Fetch follow states for a list of user IDs ──
   const fetchFollowStates = useCallback(async (targetIds) => {
@@ -124,6 +126,9 @@ export function useFollowing(userId) {
       setFollowing(profiles || []);
       setFollowingLeaderboard(profiles || []);
 
+      // Keep followingIdsRef in sync for realtime feed check
+      followingIdsRef.current = new Set(ids);
+
       // Fetch friends online
       const cutoff = new Date(Date.now() - 60_000).toISOString();
       const { count } = await supabase
@@ -189,16 +194,23 @@ export function useFollowing(userId) {
     }
   }, [userId]);
 
-  // ── Follow user (with optimistic UI) ──
+  // ── Follow user (with optimistic UI + duplicate guard) ──
   const follow = useCallback(
     async (targetId, targetIsPrivate = false) => {
       if (!userId || userId === targetId) return;
       
+      // GUARD: Prevent duplicate — only follow from 'none' state
+      const current = followStates.get(targetId);
+      if (current && current.status !== 'none') {
+        console.warn("[useFollowing] Already in state:", current.status, "— skipping follow");
+        return;
+      }
+      
       // Optimistic update
       const optimisticStatus = targetIsPrivate ? 'pending' : 'accepted';
-      const previousState = followStates.get(targetId);
+      const previousState = current || { status: 'none', loading: false };
       
-      optimisticRef.current.set(targetId, true);
+      optimisticRef.current.set(targetId, Date.now());
       setFollowStates((prev) => {
         const next = new Map(prev);
         next.set(targetId, { status: optimisticStatus, loading: true });
@@ -206,14 +218,19 @@ export function useFollowing(userId) {
       });
 
       try {
-        const { error } = await supabase.from("follows").insert({
-          follower_id: userId,
-          following_id: targetId,
-        });
+        // Use upsert with onConflict to handle unique constraint
+        const { error } = await supabase.from("follows").upsert(
+          {
+            follower_id: userId,
+            following_id: targetId,
+            status: optimisticStatus,
+          },
+          { onConflict: "follower_id,following_id" }
+        );
 
         if (error) throw error;
 
-        // Success - mark as not loading, keep optimistic status
+        // Success — clear optimistic flag, keep status
         optimisticRef.current.delete(targetId);
         setFollowStates((prev) => {
           const next = new Map(prev);
@@ -221,7 +238,9 @@ export function useFollowing(userId) {
           return next;
         });
         
+        // Refresh lists in background (won't flicker because optimisticRef was cleared)
         fetchFollowing();
+        fetchFollowers();
       } catch (err) {
         console.error("[useFollowing] follow error:", err);
         
@@ -229,16 +248,12 @@ export function useFollowing(userId) {
         optimisticRef.current.delete(targetId);
         setFollowStates((prev) => {
           const next = new Map(prev);
-          if (previousState) {
-            next.set(targetId, previousState);
-          } else {
-            next.set(targetId, { status: 'none', loading: false });
-          }
+          next.set(targetId, previousState);
           return next;
         });
       }
     },
-    [userId, followStates, fetchFollowing]
+    [userId, followStates, fetchFollowing, fetchFollowers]
   );
 
   // ── Unfollow user (with optimistic UI) ──
@@ -339,14 +354,14 @@ export function useFollowing(userId) {
     [userId, fetchPendingRequests, fetchFollowers]
   );
 
-  // ── Decline follow request ──
+  // ── Decline follow request (DELETE row so they can request again) ──
   const declineFollowRequest = useCallback(
     async (followerId) => {
       if (!userId) return;
       try {
         await supabase
           .from("follows")
-          .update({ status: "declined" })
+          .delete()
           .eq("follower_id", followerId)
           .eq("following_id", userId);
         fetchPendingRequests();
@@ -408,7 +423,7 @@ export function useFollowing(userId) {
         { event: "INSERT", schema: "public", table: "live_activity" },
         (payload) => {
           // Update feed if activity is from a followed user
-          if (followingIds.has(payload.new.user_id)) {
+          if (followingIdsRef.current.has(payload.new.user_id)) {
             fetchFollowing(); // Refresh feed
           }
         }
