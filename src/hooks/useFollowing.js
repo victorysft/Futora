@@ -2,19 +2,19 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 
 /**
- * useFollowing — Social following system.
+ * useFollowing — Deterministic follow state machine
  *
- * - Follow / unfollow users
- * - Get following list with profiles
- * - Get followers list
- * - Get friends online now (followed users who are online)
- * - Get following-only leaderboard
- * - Real-time activity feed of followed users
+ * States:
+ * - none: No follow relationship
+ * - pending: Follow requested (target is private)
+ * - accepted: Following (target is public or approved)
+ * - mutual: Friends (both follow each other with accepted status)
  *
- * Returns: {
- *   following, followers, friendsOnline, followingLeaderboard,
- *   followingFeed, isFollowing, follow, unfollow, loading
- * }
+ * Features:
+ * - Optimistic UI with rollback
+ * - Realtime subscription
+ * - No flickering
+ * - Deterministic button states
  */
 export function useFollowing(userId) {
   const [following, setFollowing] = useState([]);
@@ -23,10 +23,74 @@ export function useFollowing(userId) {
   const [friendsOnline, setFriendsOnline] = useState(0);
   const [followingLeaderboard, setFollowingLeaderboard] = useState([]);
   const [followingFeed, setFollowingFeed] = useState([]);
-  const [followingIds, setFollowingIds] = useState(new Set());
+  
+  // State machine: Map<targetId, {status: 'none'|'pending'|'accepted'|'mutual', loading: boolean}>
+  const [followStates, setFollowStates] = useState(new Map());
   const [loading, setLoading] = useState(true);
   const channelRef = useRef(null);
+  const optimisticRef = useRef(new Map()); // Track optimistic updates
 
+  // ── Fetch follow states for a list of user IDs ──
+  const fetchFollowStates = useCallback(async (targetIds) => {
+    if (!userId || !targetIds || targetIds.length === 0) return;
+    
+    try {
+      // Fetch outgoing follows (I follow them)
+      const { data: outgoing } = await supabase
+        .from("follows")
+        .select("following_id, status")
+        .eq("follower_id", userId)
+        .in("following_id", targetIds);
+
+      // Fetch incoming follows (they follow me)
+      const { data: incoming } = await supabase
+        .from("follows")
+        .select("follower_id, status")
+        .eq("following_id", userId)
+        .in("follower_id", targetIds)
+        .eq("status", "accepted");
+
+      const outgoingMap = new Map(
+        (outgoing || []).map((f) => [f.following_id, f.status])
+      );
+      const incomingSet = new Set(
+        (incoming || []).filter(f => f.status === 'accepted').map((f) => f.follower_id)
+      );
+
+      setFollowStates((prev) => {
+        const next = new Map(prev);
+        targetIds.forEach((targetId) => {
+          // Skip optimistic updates
+          if (optimisticRef.current.has(targetId)) return;
+
+          const outgoingStatus = outgoingMap.get(targetId);
+          const hasIncoming = incomingSet.has(targetId);
+
+          let status = 'none';
+          if (outgoingStatus === 'accepted' && hasIncoming) {
+            status = 'mutual';
+          } else if (outgoingStatus === 'accepted') {
+            status = 'accepted';
+          } else if (outgoingStatus === 'pending') {
+            status = 'pending';
+          }
+
+          next.set(targetId, { status, loading: false });
+        });
+        return next;
+      });
+    } catch (err) {
+      console.error("[useFollowing] fetchFollowStates error:", err);
+    }
+  }, [userId]);
+
+  // ── Get follow state for a specific user (deterministic) ──
+  const getFollowState = useCallback((targetId) => {
+    if (!targetId || targetId === userId) {
+      return { status: 'self', loading: false };
+    }
+    return followStates.get(targetId) || { status: 'none', loading: false };
+  }, [followStates, userId]);
   // ── Fetch following list ──
   const fetchFollowing = useCallback(async () => {
     if (!userId) return;
@@ -38,7 +102,6 @@ export function useFollowing(userId) {
         .eq("status", "accepted");
 
       const ids = (data || []).map((f) => f.following_id);
-      setFollowingIds(new Set(ids));
 
       if (ids.length === 0) {
         setFollowing([]);
@@ -47,6 +110,9 @@ export function useFollowing(userId) {
         setFollowingFeed([]);
         return;
       }
+
+      // Fetch follow states for these users
+      await fetchFollowStates(ids);
 
       // Fetch profiles of followed users
       const { data: profiles } = await supabase
@@ -94,7 +160,7 @@ export function useFollowing(userId) {
     } catch (err) {
       console.error("[useFollowing] fetch error:", err);
     }
-  }, [userId]);
+  }, [userId, fetchFollowStates]);
 
   // ── Fetch followers ──
   const fetchFollowers = useCallback(async () => {
@@ -123,45 +189,108 @@ export function useFollowing(userId) {
     }
   }, [userId]);
 
-  // ── Follow user ──
+  // ── Follow user (with optimistic UI) ──
   const follow = useCallback(
-    async (targetId) => {
+    async (targetId, targetIsPrivate = false) => {
       if (!userId || userId === targetId) return;
+      
+      // Optimistic update
+      const optimisticStatus = targetIsPrivate ? 'pending' : 'accepted';
+      const previousState = followStates.get(targetId);
+      
+      optimisticRef.current.set(targetId, true);
+      setFollowStates((prev) => {
+        const next = new Map(prev);
+        next.set(targetId, { status: optimisticStatus, loading: true });
+        return next;
+      });
+
       try {
-        await supabase.from("follows").insert({
+        const { error } = await supabase.from("follows").insert({
           follower_id: userId,
           following_id: targetId,
         });
-        setFollowingIds((prev) => new Set([...prev, targetId]));
+
+        if (error) throw error;
+
+        // Success - mark as not loading, keep optimistic status
+        optimisticRef.current.delete(targetId);
+        setFollowStates((prev) => {
+          const next = new Map(prev);
+          next.set(targetId, { status: optimisticStatus, loading: false });
+          return next;
+        });
+        
         fetchFollowing();
       } catch (err) {
         console.error("[useFollowing] follow error:", err);
+        
+        // Rollback on error
+        optimisticRef.current.delete(targetId);
+        setFollowStates((prev) => {
+          const next = new Map(prev);
+          if (previousState) {
+            next.set(targetId, previousState);
+          } else {
+            next.set(targetId, { status: 'none', loading: false });
+          }
+          return next;
+        });
       }
     },
-    [userId, fetchFollowing]
+    [userId, followStates, fetchFollowing]
   );
 
-  // ── Unfollow user ──
+  // ── Unfollow user (with optimistic UI) ──
   const unfollow = useCallback(
     async (targetId) => {
       if (!userId) return;
+      
+      // Optimistic update
+      const previousState = followStates.get(targetId);
+      
+      optimisticRef.current.set(targetId, true);
+      setFollowStates((prev) => {
+        const next = new Map(prev);
+        next.set(targetId, { status: 'none', loading: true });
+        return next;
+      });
+
       try {
-        await supabase
+        const { error } = await supabase
           .from("follows")
           .delete()
           .eq("follower_id", userId)
           .eq("following_id", targetId);
-        setFollowingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(targetId);
+
+        if (error) throw error;
+
+        // Success
+        optimisticRef.current.delete(targetId);
+        setFollowStates((prev) => {
+          const next = new Map(prev);
+          next.set(targetId, { status: 'none', loading: false });
           return next;
         });
+        
         fetchFollowing();
       } catch (err) {
         console.error("[useFollowing] unfollow error:", err);
+        
+        // Rollback on error
+        optimisticRef.current.delete(targetId);
+        setFollowStates((prev) => {
+          const next = new Map(prev);
+          if (previousState) {
+            next.set(targetId, previousState);
+          } else {
+            next.set(targetId, { status: 'none', loading: false });
+          }
+          return next;
+        });
       }
     },
-    [userId, fetchFollowing]
+    [userId, followStates, fetchFollowing]
   );
 
   // ── Fetch pending follow requests (people wanting to follow you) ──
@@ -228,10 +357,13 @@ export function useFollowing(userId) {
     [userId, fetchPendingRequests]
   );
 
-  // ── Check if following ──
+  // ── Check if following ── (kept for backwards compatibility)
   const isFollowing = useCallback(
-    (targetId) => followingIds.has(targetId),
-    [followingIds]
+    (targetId) => {
+      const state = getFollowState(targetId);
+      return state.status === 'accepted' || state.status === 'mutual';
+    },
+    [getFollowState]
   );
 
   useEffect(() => {
@@ -257,9 +389,17 @@ export function useFollowing(userId) {
             row?.follower_id === userId ||
             row?.following_id === userId
           ) {
-            fetchFollowing();
-            fetchFollowers();
-            fetchPendingRequests();
+            // Don't refetch if we have optimistic update in progress
+            const targetId = row.follower_id === userId ? row.following_id : row.follower_id;
+            if (!optimisticRef.current.has(targetId)) {
+              fetchFollowing();
+              fetchFollowers();
+              fetchPendingRequests();
+              // Refresh state for this specific user
+              if (targetId) {
+                fetchFollowStates([targetId]);
+              }
+            }
           }
         }
       )
@@ -280,7 +420,7 @@ export function useFollowing(userId) {
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [userId, fetchFollowing, fetchFollowers, fetchPendingRequests]);
+  }, [userId, fetchFollowing, fetchFollowers, fetchPendingRequests, fetchFollowStates]);
 
   return {
     following,
@@ -289,12 +429,14 @@ export function useFollowing(userId) {
     friendsOnline,
     followingLeaderboard,
     followingFeed,
-    followingIds,
-    isFollowing,
+    followStates,
+    getFollowState,
+    isFollowing, // Backwards compatibility
     follow,
     unfollow,
     acceptFollowRequest,
     declineFollowRequest,
+    fetchFollowStates, // Expose for Discover tab
     loading,
   };
 }

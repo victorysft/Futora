@@ -50,11 +50,13 @@ export default function Network() {
     pendingRequests,
     friendsOnline,
     followingFeed,
-    isFollowing,
+    getFollowState,
+    isFollowing, // Backwards compatibility
     follow,
     unfollow,
     acceptFollowRequest,
     declineFollowRequest,
+    fetchFollowStates,
     loading: followLoading,
   } = useFollowing(user?.id);
 
@@ -69,7 +71,7 @@ export default function Network() {
       setSearchLoading(true);
       let query = supabase
         .from("profiles")
-        .select("id, identity, becoming, xp, level, streak, focus, location")
+        .select("id, identity, becoming, xp, level, streak, focus, location, is_private")
         .order("xp", { ascending: false })
         .limit(50);
 
@@ -80,13 +82,20 @@ export default function Network() {
       }
 
       const { data } = await query;
-      setAllBuilders((data || []).filter((p) => p.id !== user?.id));
+      const builders = (data || []).filter((p) => p.id !== user?.id);
+      setAllBuilders(builders);
+      
+      // Fetch follow states for all discovered builders
+      if (builders.length > 0 && fetchFollowStates) {
+        const ids = builders.map(b => b.id);
+        fetchFollowStates(ids);
+      }
     } catch (err) {
       console.error("[Network] fetch error:", err);
     } finally {
       setSearchLoading(false);
     }
-  }, [user?.id, searchQuery]);
+  }, [user?.id, searchQuery, fetchFollowStates]);
 
   useEffect(() => {
     fetchBuilders();
@@ -221,7 +230,46 @@ export default function Network() {
           >
             <AnimatePresence mode="popLayout">
               {displayedBuilders.map((builder) => {
-                const isFollowed = isFollowing(builder.id);
+                // Get deterministic follow state
+                const followState = getFollowState(builder.id);
+                const { status, loading: stateLoading } = followState;
+                
+                // Determine button props based on state machine
+                let buttonLabel = "Follow";
+                let buttonClass = "net-follow-btn-follow";
+                let buttonAction = () => follow(builder.id, builder.is_private);
+                let buttonDisabled = stateLoading;
+                
+                if (activeTab === "Requests") {
+                  // Requests tab - always show Accept
+                  buttonLabel = "Accept";
+                  buttonClass = "net-follow-btn-follow";
+                  buttonAction = () => acceptFollowRequest(builder.id);
+                } else {
+                  // Discover/Following/Followers tabs - state machine
+                  if (status === 'self') {
+                    buttonLabel = "You";
+                    buttonClass = "net-follow-btn-following";
+                    buttonDisabled = true;
+                  } else if (status === 'pending') {
+                    buttonLabel = "Requested";
+                    buttonClass = "net-follow-btn-following";
+                    buttonAction = () => unfollow(builder.id);
+                  } else if (status === 'mutual') {
+                    buttonLabel = "Friends";
+                    buttonClass = "net-follow-btn-following";
+                    buttonAction = () => unfollow(builder.id);
+                  } else if (status === 'accepted') {
+                    buttonLabel = "Following";
+                    buttonClass = "net-follow-btn-following";
+                    buttonAction = () => unfollow(builder.id);
+                  } else {
+                    buttonLabel = "Follow";
+                    buttonClass = "net-follow-btn-follow";
+                    buttonAction = () => follow(builder.id, builder.is_private);
+                  }
+                }
+                
                 return (
                   <motion.div
                     key={builder.id}
@@ -250,24 +298,12 @@ export default function Network() {
                       </div>
                     </div>
                     <button
-                      className={`net-follow-btn ${
-                        activeTab === "Requests"
-                          ? "net-follow-btn-follow"
-                          : isFollowed
-                          ? "net-follow-btn-following"
-                          : "net-follow-btn-follow"
-                      }`}
-                      onClick={() => {
-                        if (activeTab === "Requests") {
-                          acceptFollowRequest(builder.id);
-                        } else if (isFollowed) {
-                          unfollow(builder.id);
-                        } else {
-                          follow(builder.id);
-                        }
-                      }}
+                      className={`net-follow-btn ${buttonClass}`}
+                      onClick={buttonAction}
+                      disabled={buttonDisabled}
+                      style={{ opacity: buttonDisabled ? 0.5 : 1 }}
                     >
-                      {activeTab === "Requests" ? "Accept" : isFollowed ? "Following" : "Follow"}
+                      {stateLoading ? "..." : buttonLabel}
                     </button>
                     {activeTab === "Requests" && (
                       <button
