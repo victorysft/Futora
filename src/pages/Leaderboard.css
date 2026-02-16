@@ -223,6 +223,80 @@
   border-radius: 4px;
 }
 
+/* ── Focus Filter Dropdown ── */
+.lb-focus-filter {
+  all: unset;
+  margin-left: auto;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.04em;
+}
+
+.lb-focus-filter:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.lb-focus-filter option {
+  background: #0f0f0f;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Rank Delta Badge ── */
+.lb-rank-delta-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+  display: inline-block;
+}
+
+.lb-rank-delta-up {
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.lb-rank-delta-down {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+/* ── Next Person Indicator ── */
+.lb-rank-next-person {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.lb-rank-next-xp {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #8B5CF6;
+}
+
+.lb-rank-next-label {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+}
+
 /* ═══════════════════════════════════════════
    TABLE CONTAINER
    ═══════════════════════════════════════════ */

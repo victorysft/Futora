@@ -6,6 +6,9 @@ import { useLiveDashboard } from "../hooks/useLiveDashboard";
 import { useXPToday } from "../hooks/useXPToday";
 import { useOnlineUsers } from "../hooks/useOnlineUsers";
 import { useTrendingFocus } from "../hooks/useTrendingFocus";
+import { useFollowing } from "../hooks/useFollowing";
+import { useRankDelta } from "../hooks/useRankDelta";
+import StreakBadge from "../components/StreakBadge";
 import DashboardLayout from "../components/DashboardLayout";
 import "./Dashboard.css";
 import "./Leaderboard.css";
@@ -22,7 +25,10 @@ const stagger = {
 };
 
 /* ── Tabs ── */
-const TABS = ["Global", "This Week", "Friends", "Focus"];
+const TABS = ["Global", "This Week", "Following", "Country"];
+
+/* ── Focus filter options ── */
+const FOCUS_OPTIONS = ["All", "Entrepreneur", "Developer", "Athlete", "Creator"];
 
 /* ── Rank badge styling ── */
 const getRankStyle = (rank) => {
@@ -62,19 +68,27 @@ function FlameIcon({ streak }) {
 
 export default function Leaderboard() {
   const { user, profile } = useAuth();
-  const { leaders, myRank, loading } = useLeaderboard(user?.id);
   const liveCounters = useLiveDashboard();
   const xpTodayMap = useXPToday();
   const { onlineUsers } = useOnlineUsers();
   const trendingFocus = useTrendingFocus();
+  const { followingIds } = useFollowing(user?.id);
+  const rankDelta = useRankDelta(user?.id);
   const [activeTab, setActiveTab] = useState("Global");
+  const [focusFilter, setFocusFilter] = useState("All");
   const [onlinePanelOpen, setOnlinePanelOpen] = useState(false);
   const [hoveredRank, setHoveredRank] = useState(null);
   const [xpFlashIds, setXpFlashIds] = useState(new Set());
   const prevXpMapRef = useRef(new Map());
 
-  /* ── Total profiles count for tooltip ── */
-  const totalProfiles = leaders.length; // Approximation; could query DB for exact count
+  // Pass tab/filter/followingIds to leaderboard hook
+  const followingIdArr = useMemo(() => Array.from(followingIds || []), [followingIds]);
+  const { leaders, myRank, totalCount, loading } = useLeaderboard(
+    user?.id,
+    activeTab,
+    focusFilter === "All" ? "" : focusFilter,
+    followingIdArr
+  );
 
   /* ── Track XP changes for flash animation ── */
   useEffect(() => {
@@ -95,12 +109,8 @@ export default function Leaderboard() {
     prevXpMapRef.current = new Map(xpTodayMap);
   }, [xpTodayMap]);
 
-  /* ── Filter leaders by tab ── */
-  const filteredLeaders = useMemo(() => {
-    // TODO: Implement filtering logic for This Week, Friends, Focus
-    // For now, just return all leaders (Global)
-    return leaders;
-  }, [leaders, activeTab]);
+  /* ── Leaders are already filtered by the hook ── */
+  const filteredLeaders = leaders;
 
   if (loading) {
     return (
@@ -184,12 +194,20 @@ export default function Leaderboard() {
                   key={tab}
                   className={`lb-tab ${activeTab === tab ? "lb-tab-active" : ""}`}
                   onClick={() => setActiveTab(tab)}
-                  disabled={tab !== "Global"}
                 >
                   {tab}
-                  {tab !== "Global" && <span className="lb-tab-soon">SOON</span>}
                 </button>
               ))}
+              {/* Focus filter */}
+              <select
+                className="lb-focus-filter"
+                value={focusFilter}
+                onChange={(e) => setFocusFilter(e.target.value)}
+              >
+                {FOCUS_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt === "All" ? "All Focus" : opt}</option>
+                ))}
+              </select>
             </div>
 
             {/* Microline Header */}
@@ -252,7 +270,7 @@ export default function Leaderboard() {
                           </span>
                           {hoveredRank === rank && (
                             <div className="lb-rank-tooltip">
-                              Ranked #{rank} out of {totalProfiles} global builders.
+                              Ranked #{rank} out of {totalCount || leaders.length} global builders.
                             </div>
                           )}
                         </div>
@@ -313,6 +331,14 @@ export default function Leaderboard() {
               <div className="lb-rank-big">
                 {myRank ? `#${myRank}` : "—"}
               </div>
+
+              {/* Rank delta */}
+              {rankDelta.delta !== 0 && (
+                <div className={`lb-rank-delta-badge ${rankDelta.delta > 0 ? "lb-rank-delta-up" : "lb-rank-delta-down"}`}>
+                  {rankDelta.delta > 0 ? "▲" : "▼"} {Math.abs(rankDelta.delta)} position{Math.abs(rankDelta.delta) !== 1 ? "s" : ""} today
+                </div>
+              )}
+
               <div className="lb-rank-meta">
                 <span className="lb-rank-xp">
                   {(profile?.xp || 0).toLocaleString()} XP
@@ -332,6 +358,15 @@ export default function Leaderboard() {
                   {100 - ((profile?.xp || 0) % 100)} XP to next level
                 </span>
               </div>
+
+              {/* XP to pass next person */}
+              {rankDelta.xpToNextRank > 0 && rankDelta.nextPerson && (
+                <div className="lb-rank-next-person">
+                  <span className="lb-rank-next-xp">{rankDelta.xpToNextRank} XP</span>
+                  <span className="lb-rank-next-label">to pass #{rankDelta.nextPerson.rank}</span>
+                </div>
+              )}
+
               <p className="lb-rank-message">Keep pushing.</p>
             </div>
           </motion.div>

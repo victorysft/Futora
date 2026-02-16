@@ -4,6 +4,8 @@ import { useGlobalStats } from "../hooks/useGlobalStats";
 import { useGlobalActivity } from "../hooks/useGlobalActivity";
 import { useCountryHeat } from "../hooks/useCountryHeat";
 import { useCountUp } from "../hooks/useCountUp";
+import { useCountryStats } from "../hooks/useCountryStats";
+import { useActivityHeatmap } from "../hooks/useActivityHeatmap";
 import { getRandomCountry } from "../utils/geolocation";
 import Globe3D from "../components/Globe3D";
 import DashboardLayout from "../components/DashboardLayout";
@@ -52,6 +54,8 @@ export default function GlobalLive() {
   const stats = useGlobalStats();
   const { activities } = useGlobalActivity();
   const { activityPulses } = useCountryHeat();
+  const { topCountryToday, activeCountries: countryList } = useCountryStats();
+  const { heatmapData } = useActivityHeatmap();
 
   const [buildersCount, buildersChanged] = useCountUp(stats.onlineNow);
   const [view, setView] = useState("live"); // "live" | "heatmap" (future)
@@ -168,8 +172,17 @@ export default function GlobalLive() {
             <div className="gl-metric-divider" />
             <div className="gl-metric">
               <span className="gl-metric-label">COUNTRIES</span>
-              <span className="gl-metric-value">{activeCountries.length}</span>
+              <span className="gl-metric-value">{countryList.length || activeCountries.length}</span>
             </div>
+            {topCountryToday && (
+              <>
+                <div className="gl-metric-divider" />
+                <div className="gl-metric">
+                  <span className="gl-metric-label">TOP COUNTRY</span>
+                  <span className="gl-metric-value gl-metric-country">{topCountryToday.name}</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Right: Time + Toggles */}
@@ -198,7 +211,11 @@ export default function GlobalLive() {
           <div className="gl-globe-area">
             <div className="gl-globe-ambient" />
             <div className="gl-globe-container" title="Drag to rotate">
-              <Globe3D pulses={view === "live" ? pulses : []} onlineCount={stats.onlineNow} />
+              <Globe3D
+                pulses={view === "live" ? pulses : []}
+                heatmapData={view === "heatmap" ? heatmapData : []}
+                onlineCount={stats.onlineNow}
+              />
             </div>
           </div>
 

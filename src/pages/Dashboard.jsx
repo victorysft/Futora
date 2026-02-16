@@ -3,8 +3,13 @@ import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../supabaseClient";
 import { motion } from "framer-motion";
 import DashboardLayout from "../components/DashboardLayout";
+import XPToast from "../components/XPToast";
+import StreakBadge from "../components/StreakBadge";
 import { usePresence } from "../hooks/usePresence";
 import { useLiveDashboard } from "../hooks/useLiveDashboard";
+import { useXPProgress } from "../hooks/useXPProgress";
+import { useStreakReminder } from "../hooks/useStreakReminder";
+import { useRankDelta } from "../hooks/useRankDelta";
 import "./Dashboard.css";
 
 /* ── Helpers ── */
@@ -76,6 +81,12 @@ export default function Dashboard() {
   /* ── Real-time hooks ── */
   const { onlineCount } = usePresence(user?.id);
   const liveCounters = useLiveDashboard();
+  const xpDailyProgress = useXPProgress(user?.id);
+  const streakReminder = useStreakReminder(user?.id);
+  const rankDelta = useRankDelta(user?.id);
+
+  /* ── XP Toast state ── */
+  const [toastData, setToastData] = useState({ show: false, xpGained: 0, streak: 0, rankChange: null, levelUp: null });
 
   /* ── Derived from profile ── */
   const streak = profile?.streak || 0;
@@ -293,6 +304,15 @@ export default function Dashboard() {
       await refreshProfile();
       setWeeklySessions((s) => s + 1);
       fetchWeeklyGraph();
+
+      // Show XP toast
+      setToastData({
+        show: true,
+        xpGained: Math.max(xpGain, 0),
+        streak: newStreak,
+        rankChange: null,
+        levelUp: newLevel > prevLevel ? { from: prevLevel, to: newLevel } : null,
+      });
     } catch (err) {
       console.error("Check-in failed:", err);
     } finally {
@@ -352,6 +372,58 @@ export default function Dashboard() {
         initial="hidden"
         animate="visible"
       >
+        {/* ═══════ STREAK WARNING BANNER ═══════ */}
+        {(streakReminder.missedYesterday || streakReminder.streakAtRisk) && !checkedInToday && (
+          <motion.div
+            className="d-streak-warning"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            style={{
+              padding: "10px 20px",
+              marginBottom: "16px",
+              borderRadius: "10px",
+              background: streakReminder.missedYesterday
+                ? "rgba(239, 68, 68, 0.08)"
+                : "rgba(255, 140, 0, 0.08)",
+              border: `1px solid ${streakReminder.missedYesterday ? "rgba(239, 68, 68, 0.2)" : "rgba(255, 140, 0, 0.2)"}`,
+              color: streakReminder.missedYesterday
+                ? "rgba(239, 68, 68, 0.85)"
+                : "rgba(255, 140, 0, 0.85)",
+              fontSize: "13px",
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            {streakReminder.missedYesterday
+              ? "⚠ You missed yesterday. Check in now to start a new streak!"
+              : "⏰ Your streak is at risk — check in before midnight!"}
+          </motion.div>
+        )}
+
+        {/* ═══════ STREAK MILESTONE BANNER ═══════ */}
+        {streakReminder.streakMilestone && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              padding: "10px 20px",
+              marginBottom: "16px",
+              borderRadius: "10px",
+              background: "rgba(139, 92, 246, 0.08)",
+              border: "1px solid rgba(139, 92, 246, 0.2)",
+              color: "#8B5CF6",
+              fontSize: "13px",
+              fontWeight: 600,
+              textAlign: "center",
+            }}
+          >
+            🎉 {streakReminder.streakMilestone}-day streak milestone! You're unstoppable.
+          </motion.div>
+        )}
+
         {/* ═══════ HERO SECTION ═══════ */}
         <motion.div className="d-hero" variants={fadeUp}>
           <div className="d-hero-main">
@@ -371,6 +443,40 @@ export default function Dashboard() {
                 </div>
                 <span className="d-hero-xp-text">Level {level} — {xp % 100}/100 XP</span>
               </div>
+
+              {/* ── Daily XP cap progress ── */}
+              <div className="d-xp-cap">
+                <div className="d-xp-cap-track">
+                  <motion.div
+                    className="d-xp-cap-fill"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${xpDailyProgress.progress * 100}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    style={{ background: xpDailyProgress.isCapped ? "rgba(255, 69, 0, 0.7)" : "rgba(139, 92, 246, 0.5)" }}
+                  />
+                </div>
+                <span className="d-xp-cap-text">
+                  {xpDailyProgress.isCapped ? "Daily XP cap reached" : `${xpDailyProgress.xpToday}/${xpDailyProgress.xpCap} daily XP`}
+                </span>
+              </div>
+
+              {/* ── Rank display ── */}
+              {rankDelta.rank && (
+                <div className="d-rank-display">
+                  <span className="d-rank-num">Rank #{rankDelta.rank}</span>
+                  {rankDelta.delta !== 0 && (
+                    <span className={`d-rank-delta ${rankDelta.delta > 0 ? "d-rank-up" : "d-rank-down"}`}>
+                      {rankDelta.delta > 0 ? "▲" : "▼"} {Math.abs(rankDelta.delta)} today
+                    </span>
+                  )}
+                  {rankDelta.xpToNextRank > 0 && rankDelta.nextPerson && (
+                    <span className="d-rank-next">
+                      {rankDelta.xpToNextRank} XP to pass #{rankDelta.nextPerson.rank}
+                    </span>
+                  )}
+                </div>
+              )}
+
               <button
                 className="d-btn d-btn-purple"
                 onClick={handleCheckIn}
@@ -610,6 +716,16 @@ export default function Dashboard() {
           </motion.div>
         </div>
       </motion.div>
+
+      {/* ═══════ XP TOAST ═══════ */}
+      <XPToast
+        show={toastData.show}
+        xpGained={toastData.xpGained}
+        streak={toastData.streak}
+        rankChange={toastData.rankChange}
+        levelUp={toastData.levelUp}
+        onDismiss={() => setToastData((prev) => ({ ...prev, show: false }))}
+      />
     </DashboardLayout>
   );
 }

@@ -1,0 +1,377 @@
+/* ════════════════════════════════════════════
+   FUTORA · Network Page
+   Social following, builder discovery, following feed
+   ════════════════════════════════════════════ */
+
+/* ── Layout ── */
+.net-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0;
+}
+
+/* ── Hero ── */
+.net-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+}
+
+.net-hero-left h1 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 4px 0;
+}
+
+.net-hero-left p {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+.net-hero-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.net-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.net-stat-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.net-stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ── Search ── */
+.net-search-bar {
+  position: relative;
+}
+
+.net-search-input {
+  width: 100%;
+  padding: 12px 16px 12px 40px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.net-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.net-search-input:focus {
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.net-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+}
+
+/* ── Tabs ── */
+.net-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.net-tab {
+  all: unset;
+  padding: 8px 18px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.net-tab:hover {
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.net-tab-active {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(139, 92, 246, 0.15);
+}
+
+/* ── Main Layout ── */
+.net-main {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+}
+
+/* ── Builder Grid ── */
+.net-builder-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.net-builder-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.net-builder-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.net-builder-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.net-builder-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.net-builder-meta {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.net-builder-focus {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.04em;
+}
+
+.net-builder-stat {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 500;
+}
+
+.net-builder-stat strong {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+}
+
+.net-follow-btn {
+  all: unset;
+  padding: 6px 16px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.net-follow-btn-follow {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8B5CF6;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.net-follow-btn-follow:hover {
+  background: rgba(139, 92, 246, 0.25);
+}
+
+.net-follow-btn-following {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.net-follow-btn-following:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: rgba(239, 68, 68, 0.8);
+}
+
+/* ── Side Panel ── */
+.net-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.net-side-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.net-side-card h3 {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0 0 12px 0;
+}
+
+/* ── Feed items ── */
+.net-feed-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.net-feed-item:last-child {
+  border-bottom: none;
+}
+
+.net-feed-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.net-feed-dot-checkin { background: #8B5CF6; }
+.net-feed-dot-levelup { background: #FFD700; }
+.net-feed-dot-login { background: #10B981; }
+.net-feed-dot-follow { background: #3B82F6; }
+
+.net-feed-text {
+  flex: 1;
+}
+
+.net-feed-user {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.net-feed-desc {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 2px 0 0 0;
+}
+
+.net-feed-time {
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ── Friends online ── */
+.net-friend-online {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.net-friend-online:last-child {
+  border-bottom: none;
+}
+
+.net-friend-online-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10B981;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.net-friend-name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  flex: 1;
+}
+
+.net-friend-level {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 500;
+}
+
+/* ── Empty states ── */
+.net-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.8rem;
+}
+
+.net-empty p {
+  margin: 4px 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1000px) {
+  .net-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .net-hero {
+    flex-direction: column;
+    gap: 14px;
+    text-align: center;
+  }
+
+  .net-tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

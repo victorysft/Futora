@@ -144,6 +144,12 @@
   flex-shrink: 0;
 }
 
+.gl-metric-country {
+  font-size: 14px !important;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
 /* Right: Time + Toggles */
 .gl-header-right {
   display: flex;
