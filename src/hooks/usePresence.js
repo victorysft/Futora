@@ -7,55 +7,79 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 /**
  * usePresence — Online presence via user_sessions table.
  *
- * - Upserts a session row on mount
+ * - Creates unique session_id per tab
+ * - Upserts session row on mount
  * - Heartbeats every 20 s
  * - Removes session on unmount / tab close
- * - Subscribes to realtime changes on user_sessions
- *   and recalculates online count from DB
+ * - Subscribes to realtime changes
+ * - Counts DISTINCT users (last_seen within 60 s)
  *
- * Returns: { onlineCount: number }
+ * Returns: { onlineCount: number, sessionId: string }
  */
 export function usePresence(userId) {
   const [onlineCount, setOnlineCount] = useState(0);
+  const sessionIdRef = useRef(null);
   const heartbeatRef = useRef(null);
   const channelRef = useRef(null);
 
-  /* ── Count online users (last_seen within 30 s) ── */
+  // Generate unique session ID per tab (stored in ref)
+  if (!sessionIdRef.current && userId) {
+    sessionIdRef.current = `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /* ── Count online users (DISTINCT user_id, last_seen within 60 s) ── */
   const fetchOnlineCount = useCallback(async () => {
     try {
-      const cutoff = new Date(Date.now() - 30_000).toISOString();
-      const { count } = await supabase
-        .from("user_sessions")
-        .select("id", { count: "exact", head: true })
-        .gte("last_seen", cutoff);
-      setOnlineCount(count ?? 0);
+      const cutoff = new Date(Date.now() - 60_000).toISOString();
+      
+      // Use RPC to count distinct users
+      const { data, error } = await supabase.rpc('count_online_users', {
+        cutoff_time: cutoff
+      });
+      
+      if (error) {
+        // Fallback: manual count (less efficient but works)
+        const { data: sessions } = await supabase
+          .from("user_sessions")
+          .select("user_id")
+          .gte("last_seen", cutoff);
+        
+        const uniqueUsers = new Set(sessions?.map(s => s.user_id) || []);
+        setOnlineCount(uniqueUsers.size);
+      } else {
+        setOnlineCount(data || 0);
+      }
     } catch {
       /* silent */
     }
   }, []);
 
-  /* ── Upsert session (insert or update last_seen) ── */
+  /* ── Upsert session (with unique session_id per tab) ── */
   const upsertSession = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || !sessionIdRef.current) return;
     try {
       await supabase.from("user_sessions").upsert(
-        { user_id: userId, last_seen: new Date().toISOString() },
-        { onConflict: "user_id" }
+        { 
+          user_id: userId, 
+          session_id: sessionIdRef.current,
+          last_seen: new Date().toISOString() 
+        },
+        { onConflict: "session_id" }
       );
     } catch {
       /* silent */
     }
   }, [userId]);
 
-  /* ── Remove session ── */
+  /* ── Remove session (by session_id, not user_id) ── */
   const removeSession = useCallback(async () => {
-    if (!userId) return;
+    if (!sessionIdRef.current) return;
     try {
-      await supabase.from("user_sessions").delete().eq("user_id", userId);
+      await supabase.from("user_sessions").delete().eq("session_id", sessionIdRef.current);
     } catch {
       /* silent */
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -82,7 +106,10 @@ export function usePresence(userId) {
 
     // Cleanup on unmount / tab close
     const handleUnload = () => {
-      const url = `${SUPABASE_URL}/rest/v1/user_sessions?user_id=eq.${userId}`;
+      const sessionId = sessionIdRef.current;
+      if (!sessionId) return;
+      
+      const url = `${SUPABASE_URL}/rest/v1/user_sessions?session_id=eq.${sessionId}`;
       const headers = {
         apikey: SUPABASE_KEY,
         Authorization: `Bearer ${SUPABASE_KEY}`,
@@ -113,5 +140,5 @@ export function usePresence(userId) {
     };
   }, [userId, upsertSession, removeSession, fetchOnlineCount]);
 
-  return { onlineCount };
+  return { onlineCount, sessionId: sessionIdRef.current };
 }

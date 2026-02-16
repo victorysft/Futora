@@ -5,110 +5,67 @@ import { getCountryCentroid, getCountryFlag, getRandomCountry } from "../utils/g
 /**
  * useCountryHeat
  * 
- * Tracks real-time activity by country and calculates heat scores.
+ * Two modes:
+ * - "heatmap": Shows today's activity (checkins, levelups, active users) per country
+ * - "live": Shows real-time online presence with pulses
  * 
- * Heat Score Formula:
- * country_activity_score = online_users * 1 + checkins_today * 2 + levelups_today * 3
+ * Heatmap Score Formula:
+ * score = checkins * 2 + levelups * 3 + active_users * 1
  * 
  * Returns:
- * - countryHeat: Map<country_code, { score, online, checkins, levelups, lat, lng, name, flag }>
+ * - countryHeat: Map<country_code, { score, online, checkins, levelups, active_users, lat, lng, name, flag }>
  * - mostActiveCountry: { code, name, flag, score }
- * - activityPulses: Array of { id, country_code, lat, lng, type, timestamp }
+ * - activityPulses: Array of { id, country_code, lat, lng, type, timestamp } (live mode only)
  */
 
 const MAX_PULSES = 100;
 const PULSE_LIFETIME = 5000; // 5 seconds
 
-export function useCountryHeat() {
+export function useCountryHeat(mode = "heatmap") {
   const [countryHeat, setCountryHeat] = useState(new Map());
   const [mostActiveCountry, setMostActiveCountry] = useState(null);
   const [activityPulses, setActivityPulses] = useState([]);
-  const pulseDebounceRef = useRef(new Map()); // For throttling pulses
+  const pulseDebounceRef = useRef(new Map());
 
   useEffect(() => {
     let mounted = true;
 
-    // ─── Initial data fetch ───
-    async function fetchInitialData() {
+    // ═══════════════════════════════════════════════════════
+    // HEATMAP MODE: Today's aggregated activity per country
+    // ═══════════════════════════════════════════════════════
+    async function fetchHeatmapData() {
       try {
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const todayISO = todayStart.toISOString();
-        const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000).toISOString();
-
-        // Fetch online users by country
-        const { data: sessions } = await supabase
-          .from("user_sessions")
-          .select("country_code, country_name, lat, lng")
-          .gte("last_seen", thirtySecondsAgo);
-
-        // Fetch today's check-ins by country
-        const { data: checkins } = await supabase
-          .from("live_activity")
-          .select("country_code")
-          .eq("type", "checkin")
-          .gte("created_at", todayISO);
-
-        // Fetch today's level-ups by country
-        const { data: levelups } = await supabase
-          .from("live_activity")
-          .select("country_code")
-          .eq("type", "level_up")
-          .gte("created_at", todayISO);
+        // Fetch today's activity from country_activity table
+        const { data: activities } = await supabase
+          .from("country_activity")
+          .select("*")
+          .eq("date", new Date().toISOString().split('T')[0]);
 
         if (!mounted) return;
 
-        // Calculate heat by country
         const heatMap = new Map();
 
-        // Count online users
-        (sessions || []).forEach((session) => {
-          if (!session.country_code) {
-            // Fallback: assign random country for demo
-            const randomCountry = getRandomCountry();
-            session.country_code = randomCountry.country_code;
-            session.country_name = randomCountry.country_name;
-            session.lat = randomCountry.lat;
-            session.lng = randomCountry.lng;
-          }
+        (activities || []).forEach((activity) => {
+          const code = activity.country_code;
+          const centroid = getCountryCentroid(code);
 
-          const code = session.country_code;
-          if (!heatMap.has(code)) {
-            const centroid = getCountryCentroid(code);
-            heatMap.set(code, {
-              code,
-              name: session.country_name || centroid.name,
-              lat: session.lat || centroid.lat,
-              lng: session.lng || centroid.lng,
-              flag: getCountryFlag(code),
-              online: 0,
-              checkins: 0,
-              levelups: 0,
-              score: 0,
-            });
-          }
-          heatMap.get(code).online += 1;
+          heatMap.set(code, {
+            code,
+            name: activity.country_name || centroid.name,
+            lat: centroid.lat,
+            lng: centroid.lng,
+            flag: getCountryFlag(code),
+            online: 0, // Not used in heatmap mode
+            checkins: activity.checkins_count || 0,
+            levelups: activity.levelups_count || 0,
+            active_users: activity.active_users || 0,
+            score: 0,
+          });
         });
 
-        // Count check-ins
-        (checkins || []).forEach((activity) => {
-          const code = activity.country_code || "US";
-          if (heatMap.has(code)) {
-            heatMap.get(code).checkins += 1;
-          }
-        });
-
-        // Count level-ups
-        (levelups || []).forEach((activity) => {
-          const code = activity.country_code || "US";
-          if (heatMap.has(code)) {
-            heatMap.get(code).levelups += 1;
-          }
-        });
-
-        // Calculate scores
+        // Calculate scores: checkins * 2 + levelups * 3 + active_users * 1
         heatMap.forEach((data) => {
-          data.score = data.online * 1 + data.checkins * 2 + data.levelups * 3;
+          data.score = data.checkins * 2 + data.levelups * 3 + data.active_users * 1;
         });
 
         setCountryHeat(heatMap);
@@ -131,133 +88,192 @@ export function useCountryHeat() {
           });
         }
       } catch (error) {
-        console.error("[useCountryHeat] Fetch error:", error);
+        console.error("[useCountryHeat] Heatmap fetch error:", error);
       }
     }
 
-    fetchInitialData();
+    // ═══════════════════════════════════════════════════════
+    // LIVE MODE: Real-time online presence by country
+    // ═══════════════════════════════════════════════════════
+    async function fetchLiveData() {
+      try {
+        const cutoff = new Date(Date.now() - 60_000).toISOString();
 
-    // ─── Real-time subscriptions ───
+        // Fetch online users with location
+        const { data: sessions } = await supabase
+          .from("user_sessions")
+          .select("user_id, last_seen")
+          .gte("last_seen", cutoff);
 
-    // Subscribe to user_sessions for online count changes
-    const sessionsChannel = supabase
-      .channel("country-heat-sessions")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "user_sessions",
-        },
-        () => {
-          // Refetch on session changes
-          fetchInitialData();
+        if (!mounted) return;
+
+        // Get unique user IDs
+        const uniqueUserIds = [...new Set(sessions?.map(s => s.user_id) || [])];
+
+        if (uniqueUserIds.length === 0) {
+          setCountryHeat(new Map());
+          return;
         }
-      )
-      .subscribe();
 
-    // Subscribe to live_activity for real-time pulses
-    const activityChannel = supabase
-      .channel("country-heat-activity")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "live_activity",
-        },
-        (payload) => {
-          if (!mounted) return;
+        // Fetch profiles with location
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, country, country_code, latitude, longitude")
+          .in("id", uniqueUserIds);
 
-          const activity = payload.new;
-          const countryCode = activity.country_code || "US";
-          const type = activity.type;
+        const heatMap = new Map();
 
-          // Debounce: prevent too many pulses from same country within 1 second
-          const debounceKey = `${countryCode}-${type}`;
-          const lastPulseTime = pulseDebounceRef.current.get(debounceKey);
-          const now = Date.now();
+        (profiles || []).forEach((profile) => {
+          let code = profile.country_code;
+          let lat = profile.latitude;
+          let lng = profile.longitude;
+          let name = profile.country;
 
-          if (lastPulseTime && now - lastPulseTime < 1000) {
-            return; // Skip this pulse
+          // Fallback if no location
+          if (!code) {
+            const random = getRandomCountry();
+            code = random.country_code;
+            name = random.country_name;
+            lat = random.lat;
+            lng = random.lng;
           }
 
-          pulseDebounceRef.current.set(debounceKey, now);
+          // If coordinates missing, use centroid
+          if (!lat || !lng) {
+            const centroid = getCountryCentroid(code);
+            lat = centroid.lat;
+            lng = centroid.lng;
+            name = name || centroid.name;
+          }
 
-          // Get country coordinates
-          const centroid = getCountryCentroid(countryCode);
-
-          // Add activity pulse
-          const pulse = {
-            id: `pulse-${activity.id}-${now}`,
-            country_code: countryCode,
-            lat: centroid.lat,
-            lng: centroid.lng,
-            type,
-            timestamp: now,
-          };
-
-          setActivityPulses((prev) => {
-            // Add new pulse, limit to MAX_PULSES
-            const updated = [pulse, ...prev].slice(0, MAX_PULSES);
-            return updated;
-          });
-
-          // Remove pulse after PULSE_LIFETIME
-          setTimeout(() => {
-            setActivityPulses((prev) => prev.filter((p) => p.id !== pulse.id));
-          }, PULSE_LIFETIME);
-
-          // Update heat scores
-          setCountryHeat((prev) => {
-            const updated = new Map(prev);
-            
-            if (!updated.has(countryCode)) {
-              updated.set(countryCode, {
-                code: countryCode,
-                name: centroid.name,
-                lat: centroid.lat,
-                lng: centroid.lng,
-                flag: getCountryFlag(countryCode),
-                online: 0,
-                checkins: 0,
-                levelups: 0,
-                score: 0,
-              });
-            }
-
-            const data = updated.get(countryCode);
-            
-            if (type === "checkin") data.checkins += 1;
-            if (type === "level_up") data.levelups += 1;
-            
-            data.score = data.online * 1 + data.checkins * 2 + data.levelups * 3;
-
-            // Recalculate most active country
-            let maxScore = 0;
-            let maxCountry = null;
-            updated.forEach((d) => {
-              if (d.score > maxScore) {
-                maxScore = d.score;
-                maxCountry = d;
-              }
+          if (!heatMap.has(code)) {
+            heatMap.set(code, {
+              code,
+              name,
+              lat,
+              lng,
+              flag: getCountryFlag(code),
+              online: 0,
+              checkins: 0,
+              levelups: 0,
+              active_users: 0,
+              score: 0,
             });
-            if (maxCountry) {
-              setMostActiveCountry({
-                code: maxCountry.code,
-                name: maxCountry.name,
-                flag: maxCountry.flag,
-                score: maxCountry.score,
-              });
-            }
+          }
+          heatMap.get(code).online += 1;
+        });
 
-            return updated;
+        // Calculate scores (online only for live mode)
+        heatMap.forEach((data) => {
+          data.score = data.online;
+        });
+
+        setCountryHeat(heatMap);
+
+        // Find most active country
+        let maxScore = 0;
+        let maxCountry = null;
+        heatMap.forEach((data) => {
+          if (data.score > maxScore) {
+            maxScore = data.score;
+            maxCountry = data;
+          }
+        });
+        if (maxCountry) {
+          setMostActiveCountry({
+            code: maxCountry.code,
+            name: maxCountry.name,
+            flag: maxCountry.flag,
+            score: maxCountry.score,
           });
         }
-      )
-      .subscribe();
+      } catch (error) {
+        console.error("[useCountryHeat] Live fetch error:", error);
+      }
+    }
 
-    // Cleanup old debounce entries every 5 seconds
+    // ═══════════════════════════════════════════════════════
+    // Initial fetch based on mode
+    // ═══════════════════════════════════════════════════════
+    if (mode === "heatmap") {
+      fetchHeatmapData();
+    } else {
+      fetchLiveData();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Real-time subscriptions
+    // ═══════════════════════════════════════════════════════
+    let sessionsChannel = null;
+    let activityChannel = null;
+    let heatmapChannel = null;
+
+    if (mode === "live") {
+      // Subscribe to user_sessions for live updates
+      sessionsChannel = supabase
+        .channel("country-heat-sessions-live")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "user_sessions" },
+          () => fetchLiveData()
+        )
+        .subscribe();
+
+      // Subscribe to live_activity for pulses
+      activityChannel = supabase
+        .channel("country-heat-activity-live")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "live_activity" },
+          (payload) => {
+            if (!mounted) return;
+
+            const activity = payload.new;
+            const countryCode = activity.country_code || "US";
+            const type = activity.type;
+
+            // Debounce pulses
+            const debounceKey = `${countryCode}-${type}`;
+            const lastPulseTime = pulseDebounceRef.current.get(debounceKey);
+            const now = Date.now();
+
+            if (lastPulseTime && now - lastPulseTime < 1000) return;
+
+            pulseDebounceRef.current.set(debounceKey, now);
+
+            // Create pulse
+            const centroid = getCountryCentroid(countryCode);
+            const pulse = {
+              id: `pulse-${activity.id}-${now}`,
+              country_code: countryCode,
+              lat: centroid.lat,
+              lng: centroid.lng,
+              type,
+              timestamp: now,
+            };
+
+            setActivityPulses((prev) => [pulse, ...prev].slice(0, MAX_PULSES));
+
+            // Remove pulse after lifetime
+            setTimeout(() => {
+              setActivityPulses((prev) => prev.filter((p) => p.id !== pulse.id));
+            }, PULSE_LIFETIME);
+          }
+        )
+        .subscribe();
+    } else if (mode === "heatmap") {
+      // Subscribe to country_activity for heatmap updates
+      heatmapChannel = supabase
+        .channel("country-heat-heatmap")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "country_activity" },
+          () => fetchHeatmapData()
+        )
+        .subscribe();
+    }
+
+    // Cleanup debounce map
     const debounceCleanup = setInterval(() => {
       const now = Date.now();
       pulseDebounceRef.current.forEach((time, key) => {
@@ -270,12 +286,13 @@ export function useCountryHeat() {
     // Cleanup
     return () => {
       mounted = false;
-      supabase.removeChannel(sessionsChannel);
-      supabase.removeChannel(activityChannel);
+      if (sessionsChannel) supabase.removeChannel(sessionsChannel);
+      if (activityChannel) supabase.removeChannel(activityChannel);
+      if (heatmapChannel) supabase.removeChannel(heatmapChannel);
       clearInterval(debounceCleanup);
       pulseDebounceRef.current.clear();
     };
-  }, []);
+  }, [mode]);
 
   return { countryHeat, mostActiveCountry, activityPulses };
 }

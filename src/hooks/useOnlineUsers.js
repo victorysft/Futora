@@ -4,9 +4,10 @@ import { supabase } from "../supabaseClient";
 /**
  * useOnlineUsers — Fetches list of online users from user_sessions.
  *
- * Joins with profiles to get username, focus, level.
- *
- * Subscribes to INSERT/UPDATE/DELETE on user_sessions.
+ * - Uses 60 second window for online detection
+ * - Deduplicates by user_id (multiple tabs = one user)
+ * - Joins with profiles to get username, focus, level
+ * - Subscribes to realtime changes
  *
  * Returns: { onlineUsers: Array<{ userId, username, focus, level }> }
  */
@@ -16,7 +17,7 @@ export function useOnlineUsers() {
 
   const fetchOnlineUsers = useCallback(async () => {
     try {
-      const cutoff = new Date(Date.now() - 30_000).toISOString();
+      const cutoff = new Date(Date.now() - 60_000).toISOString();
 
       // Get active sessions
       const { data: sessions } = await supabase
@@ -29,13 +30,14 @@ export function useOnlineUsers() {
         return;
       }
 
-      const userIds = sessions.map((s) => s.user_id);
+      // Deduplicate user_ids (multiple tabs = one user)
+      const uniqueUserIds = [...new Set(sessions.map((s) => s.user_id))];
 
       // Fetch profiles
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, identity, becoming, level")
-        .in("id", userIds);
+        .in("id", uniqueUserIds);
 
       const users = (profiles || []).map((p) => ({
         userId: p.id,
