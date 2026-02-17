@@ -50,11 +50,24 @@ function DashboardGuard({ children }) {
 function GuestGuard({ children }) {
   const { user, loading, profile, profileLoading } = useAuth();
   if (loading || profileLoading) return <LoadingScreen />;
-  if (user) {
-    if (profile?.profile_completed === true) return <Navigate to="/dashboard" replace />;
+  if (user && profile) {
+    if (profile.profile_completed === true) return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/onboarding/step-1" replace />;
+  }
+  if (user && !profile) {
+    // User exists but no profile row yet — send to onboarding
     return <Navigate to="/onboarding/step-1" replace />;
   }
   return children;
+}
+
+/* ── Root redirect — checks auth before routing ── */
+function RootRedirect() {
+  const { user, loading, profile, profileLoading } = useAuth();
+  if (loading || profileLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (profile?.profile_completed === true) return <Navigate to="/dashboard" replace />;
+  return <Navigate to="/onboarding/step-1" replace />;
 }
 
 function App() {
@@ -62,6 +75,9 @@ function App() {
     <OnboardingProvider>
       <main className="page-shell">
         <Routes>
+          {/* Root — smart redirect based on auth state */}
+          <Route path="/" element={<RootRedirect />} />
+
           {/* Public — redirect if already logged in */}
           <Route path="/login" element={<GuestGuard><Login /></GuestGuard>} />
           <Route path="/signup" element={<GuestGuard><Signup /></GuestGuard>} />
@@ -82,8 +98,8 @@ function App() {
           <Route path="/profile" element={<DashboardGuard><Profile /></DashboardGuard>} />
           <Route path="/settings" element={<DashboardGuard><Settings /></DashboardGuard>} />
 
-          {/* Catch-all → login first */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* Catch-all — smart redirect, not blind /login */}
+          <Route path="*" element={<RootRedirect />} />
         </Routes>
       </main>
     </OnboardingProvider>
