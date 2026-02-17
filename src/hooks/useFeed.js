@@ -1,25 +1,18 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabaseClient";
 
 /**
- * useFeed v2 — Smart Feed Engine
+ * useFeed v3 — Stable Feed Engine (no glitch)
  *
- * Tabs (managed internally):
- *  - "for-you"   → Score-ranked (v2: base + discipline + velocity - decay)
- *  - "following"  → Chronological from followed users
- *  - "trending"   → Highest engagement velocity in last 24h
- *
- * Features:
- *  - Internal tab state
- *  - "New posts" banner counter
- *  - Optimistic like/repost with embedded post_likes/post_reposts arrays
- *  - Inline reply
- *  - v2 score formula (computed server-side via recalculate_post_scores_v2)
+ * Key stability fixes:
+ *  - Tab & followingIds stored in refs → no callback chain reaction
+ *  - fetchPosts is referentially stable (deps: userId only)
+ *  - likePost/repostPost use functional setPosts (no posts dep)
+ *  - Tab change triggers fetch via explicit call, not useEffect cascade
  */
 
 const PAGE_SIZE = 20;
 
-/* Post select fields — includes author + interactions for optimistic UI */
 const POST_SELECT = `
   *,
   profiles!posts_user_id_fkey(
@@ -35,36 +28,45 @@ export function useFeed(userId, followingIds = []) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
-  const [tab, setTab] = useState("for-you");
+  const [tab, setTabState] = useState("for-you");
   const [newCount, setNewCount] = useState(0);
-  const newPostsRef = useRef([]);
+
+  // ── Refs for stable callbacks ──
+  const tabRef = useRef(tab);
+  const followingRef = useRef(followingIds);
   const pageRef = useRef(0);
+  const newPostsRef = useRef([]);
   const channelRef = useRef(null);
+  const isMountedRef = useRef(false);
+  const fetchingRef = useRef(false);
 
-  // Stabilize followingIds to avoid re-renders on same values
-  const followingKey = followingIds.join(",");
-  const stableFollowingIds = useMemo(() => followingIds, [followingKey]);
+  // Keep refs in sync
+  tabRef.current = tab;
+  followingRef.current = followingIds;
 
-  // ── Build query for current tab ──
+  // ── Build query (reads from refs, not deps) ──
   const buildQuery = useCallback((from, to) => {
-    if (tab === "for-you") {
+    const currentTab = tabRef.current;
+    const fIds = followingRef.current;
+
+    if (currentTab === "for-you") {
       return supabase
         .from("posts")
         .select(POST_SELECT)
         .order("score", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .range(from, to);
-
-    } else if (tab === "following") {
-      if (!stableFollowingIds.length) return null;
+    }
+    if (currentTab === "following") {
+      if (!fIds.length) return null;
       return supabase
         .from("posts")
         .select(POST_SELECT)
-        .in("user_id", stableFollowingIds)
+        .in("user_id", fIds)
         .order("created_at", { ascending: false })
         .range(from, to);
-
-    } else if (tab === "trending") {
+    }
+    if (currentTab === "trending") {
       const dayAgo = new Date(Date.now() - 86400000).toISOString();
       return supabase
         .from("posts")
@@ -74,13 +76,15 @@ export function useFeed(userId, followingIds = []) {
         .order("replies_count", { ascending: false })
         .range(from, to);
     }
-
     return null;
-  }, [tab, stableFollowingIds]);
+  }, []); // stable — reads from refs
 
-  // ── Fetch posts ──
+  // ── Fetch posts (stable — only depends on userId) ──
   const fetchPosts = useCallback(async (page = 0, append = false) => {
     if (!userId) { setLoading(false); return; }
+    if (fetchingRef.current && page === 0) return; // prevent double-fire
+    fetchingRef.current = true;
+
     if (page === 0 && !append) setLoading(true);
 
     try {
@@ -114,11 +118,22 @@ export function useFeed(userId, followingIds = []) {
       console.error("[useFeed] fetch error:", err);
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
   }, [userId, buildQuery]);
 
-  // ── Reset & fetch on tab change ──
+  // ── Initial fetch (once) ──
   useEffect(() => {
+    if (isMountedRef.current) return;
+    isMountedRef.current = true;
+    fetchPosts(0, false);
+  }, [fetchPosts]);
+
+  // ── Tab change handler (explicit, not effect cascade) ──
+  const setTab = useCallback((newTab) => {
+    if (newTab === tabRef.current) return;
+    setTabState(newTab);
+    tabRef.current = newTab;
     pageRef.current = 0;
     newPostsRef.current = [];
     setNewCount(0);
@@ -128,10 +143,10 @@ export function useFeed(userId, followingIds = []) {
 
   // ── Load more (infinite scroll) ──
   const loadMore = useCallback(() => {
-    if (loading || !hasMore) return;
+    if (fetchingRef.current || !hasMore) return;
     pageRef.current += 1;
     fetchPosts(pageRef.current, true);
-  }, [loading, hasMore, fetchPosts]);
+  }, [hasMore, fetchPosts]);
 
   // ── Realtime — count new posts for banner ──
   useEffect(() => {
@@ -146,7 +161,9 @@ export function useFeed(userId, followingIds = []) {
         { event: "INSERT", schema: "public", table: "posts" },
         (payload) => {
           if (payload.new.user_id === userId) return;
-          if (tab === "following" && !stableFollowingIds.includes(payload.new.user_id)) return;
+          const currentTab = tabRef.current;
+          const fIds = followingRef.current;
+          if (currentTab === "following" && !fIds.includes(payload.new.user_id)) return;
           newPostsRef.current.push(payload.new);
           setNewCount((c) => c + 1);
         }
@@ -160,7 +177,7 @@ export function useFeed(userId, followingIds = []) {
         channelRef.current = null;
       }
     };
-  }, [tab, stableFollowingIds, userId]);
+  }, [userId]); // stable — tab/following read from refs
 
   // ── Load new posts (banner click) ──
   const loadNew = useCallback(() => {
@@ -170,18 +187,18 @@ export function useFeed(userId, followingIds = []) {
     fetchPosts(0, false);
   }, [fetchPosts]);
 
-  // ── Like post (optimistic) ──
+  // ── Like post (optimistic — no posts dependency) ──
   const likePost = useCallback(async (postId) => {
     if (!userId) return;
-    const post = posts.find((p) => p.id === postId);
-    const wasLiked = (post?.post_likes || []).some((l) => l.user_id === userId);
 
+    let wasLiked = false;
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;
+        wasLiked = (p.post_likes || []).some((l) => l.user_id === userId);
         return {
           ...p,
-          likes_count: p.likes_count + (wasLiked ? -1 : 1),
+          likes_count: (p.likes_count || 0) + (wasLiked ? -1 : 1),
           post_likes: wasLiked
             ? (p.post_likes || []).filter((l) => l.user_id !== userId)
             : [...(p.post_likes || []), { user_id: userId }],
@@ -201,20 +218,20 @@ export function useFeed(userId, followingIds = []) {
       console.error("[useFeed] like error:", err);
       fetchPosts(0, false);
     }
-  }, [userId, posts, fetchPosts]);
+  }, [userId, fetchPosts]);
 
-  // ── Repost (optimistic) ──
+  // ── Repost (optimistic — no posts dependency) ──
   const repostPost = useCallback(async (postId) => {
     if (!userId) return;
-    const post = posts.find((p) => p.id === postId);
-    const wasReposted = (post?.post_reposts || []).some((r) => r.user_id === userId);
 
+    let wasReposted = false;
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;
+        wasReposted = (p.post_reposts || []).some((r) => r.user_id === userId);
         return {
           ...p,
-          reposts_count: p.reposts_count + (wasReposted ? -1 : 1),
+          reposts_count: (p.reposts_count || 0) + (wasReposted ? -1 : 1),
           post_reposts: wasReposted
             ? (p.post_reposts || []).filter((r) => r.user_id !== userId)
             : [...(p.post_reposts || []), { user_id: userId }],
@@ -234,7 +251,7 @@ export function useFeed(userId, followingIds = []) {
       console.error("[useFeed] repost error:", err);
       fetchPosts(0, false);
     }
-  }, [userId, posts, fetchPosts]);
+  }, [userId, fetchPosts]);
 
   // ── Report ──
   const reportPost = useCallback(async (postId, reason = "spam") => {

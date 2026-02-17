@@ -10,17 +10,17 @@ import { supabase } from "../supabaseClient";
 import "./Feed.css";
 
 /* ═══════════════════════════════════════════
-   FUTORA · Feed v2 — Full Width Social Pulse
+   FUTORA · Feed v3 — Stable Social Pulse
    3-Column: Sidebar | Feed (900px) | Intel (400px)
    ═══════════════════════════════════════════ */
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } },
 };
 const stagger = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.04 } },
+  visible: { transition: { staggerChildren: 0.03 } },
 };
 const likeBounce = {
   scale: [1, 1.3, 1],
@@ -436,7 +436,8 @@ export default function Feed() {
   const { following } = useFollowing(userId);
   const followingIds = useMemo(
     () => (following || []).map((f) => f.following_id),
-    [following]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [(following || []).map((f) => f.following_id).join(",")]
   );
 
   const {
@@ -506,34 +507,36 @@ export default function Feed() {
   }, [navigate]);
 
   // ── Infinite scroll ──
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
+  const hasMoreRef = useRef(hasMore);
+  hasMoreRef.current = hasMore;
+
   useEffect(() => {
-    if (!sentinelRef.current || !hasMore) return;
+    if (!sentinelRef.current) return;
     const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting && !loading) loadMore(); },
+      ([entry]) => {
+        if (entry.isIntersecting && hasMoreRef.current) loadMoreRef.current();
+      },
       { rootMargin: "300px" }
     );
     obs.observe(sentinelRef.current);
     return () => obs.disconnect();
-  }, [hasMore, loading, loadMore]);
+  }, []); // stable — reads from refs
 
   return (
     <DashboardLayout>
       <div className="fd-page">
         {/* ═══ MAIN FEED COLUMN ═══ */}
         <div className="fd-main-col">
-          {/* Header */}
-          <motion.div
-            className="fd-header"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+          {/* Header — no initial animation to prevent flash */}
+          <div className="fd-header">
             <h1 className="fd-title">Feed</h1>
             <p className="fd-subtitle">Your community's pulse</p>
             <div className="fd-shortcuts-hint">
               <kbd>N</kbd> New post · <kbd>F</kbd> Focus
             </div>
-          </motion.div>
+          </div>
 
           {/* Tabs with gradient divider */}
           <div className="fd-tabs-wrap">
