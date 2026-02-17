@@ -43,32 +43,48 @@ const ROLE_BADGE = {
 };
 
 /* ══════════════════════════════════════════════
-   COMMUNITY HEADER
+   COMMUNITY HEADER — Full-width Banner
    ══════════════════════════════════════════════ */
 function CommunityHeader({ community, myRole, memberCount, onBack }) {
   return (
     <motion.div className="cd-hero" variants={fadeUp}>
-      <button className="cd-back-btn" onClick={onBack}>← Back</button>
-      <div className="cd-hero-info">
-        <h1 className="cd-name">{community.name}</h1>
-        {community.description && (
-          <p className="cd-description">{community.description}</p>
-        )}
-        <div className="cd-hero-stats">
-          <span className="cd-stat">{memberCount} members</span>
-          {community.category && <span className="cd-stat">{community.category}</span>}
-          {myRole && (
-            <span
-              className="cd-role-tag"
-              style={{
-                background: (ROLE_BADGE[myRole]?.color || "#8B5CF6") + "20",
-                color: ROLE_BADGE[myRole]?.color || "#8B5CF6",
-              }}
-            >
-              {ROLE_BADGE[myRole]?.label || myRole}
-            </span>
+      {/* Full-width banner */}
+      <div
+        className="cd-banner"
+        style={community.banner_url ? { backgroundImage: `url(${community.banner_url})` } : {}}
+      >
+        <button className="cd-back-btn" onClick={onBack}>← Back</button>
+      </div>
+
+      <div className="cd-hero-body">
+        <div className="cd-hero-avatar">
+          {community.avatar_url ? (
+            <img src={community.avatar_url} alt="" className="cd-hero-avatar-img" />
+          ) : (
+            <span>{(community.name || "C")[0].toUpperCase()}</span>
           )}
-          {community.is_private && <span className="cd-private-tag">🔒 Private</span>}
+        </div>
+        <div className="cd-hero-info">
+          <h1 className="cd-name">{community.name}</h1>
+          {community.description && (
+            <p className="cd-description">{community.description}</p>
+          )}
+          <div className="cd-hero-stats">
+            <span className="cd-stat">👥 {memberCount} members</span>
+            {community.category && <span className="cd-stat">📁 {community.category}</span>}
+            {myRole && (
+              <span
+                className="cd-role-tag"
+                style={{
+                  background: (ROLE_BADGE[myRole]?.color || "#8B5CF6") + "20",
+                  color: ROLE_BADGE[myRole]?.color || "#8B5CF6",
+                }}
+              >
+                {ROLE_BADGE[myRole]?.label || myRole}
+              </span>
+            )}
+            {community.is_private && <span className="cd-private-tag">🔒 Private</span>}
+          </div>
         </div>
       </div>
     </motion.div>
@@ -331,6 +347,12 @@ export default function CommunityDetail() {
               Posts ({posts.length})
             </button>
             <button
+              className={`cd-tab${activeTab === "about" ? " active" : ""}`}
+              onClick={() => setActiveTab("about")}
+            >
+              About
+            </button>
+            <button
               className={`cd-tab${activeTab === "members" ? " active" : ""}`}
               onClick={() => setActiveTab("members")}
             >
@@ -377,24 +399,146 @@ export default function CommunityDetail() {
               </motion.div>
             )}
 
-            {activeTab === "members" && (
+            {activeTab === "about" && (
               <motion.div
-                key="members"
-                className="cd-members-list"
+                key="about"
+                className="cd-about"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                {members.map((m) => (
-                  <MemberCard
-                    key={m.user_id}
-                    member={m}
-                    myRole={myRole}
-                    userId={userId}
-                    onRoleChange={updateRole}
-                    onBan={(uid) => banUser(uid, "Banned by moderator")}
-                  />
-                ))}
+                <div className="cd-about-section">
+                  <h3 className="cd-section-title">Description</h3>
+                  <p className="cd-about-text">{community.description || "No description yet."}</p>
+                </div>
+
+                {community.rules && (
+                  <div className="cd-about-section">
+                    <h3 className="cd-section-title">Community Rules</h3>
+                    <p className="cd-about-text">{community.rules}</p>
+                  </div>
+                )}
+
+                <div className="cd-about-section">
+                  <h3 className="cd-section-title">Details</h3>
+                  <div className="cd-about-details">
+                    {community.category && (
+                      <div className="cd-about-detail">
+                        <span className="cd-about-label">Category</span>
+                        <span className="cd-about-value">{community.category}</span>
+                      </div>
+                    )}
+                    <div className="cd-about-detail">
+                      <span className="cd-about-label">Members</span>
+                      <span className="cd-about-value">{members.length}</span>
+                    </div>
+                    <div className="cd-about-detail">
+                      <span className="cd-about-label">Posts</span>
+                      <span className="cd-about-value">{posts.length}</span>
+                    </div>
+                    <div className="cd-about-detail">
+                      <span className="cd-about-label">Visibility</span>
+                      <span className="cd-about-value">{community.is_private ? "Private" : "Public"}</span>
+                    </div>
+                    <div className="cd-about-detail">
+                      <span className="cd-about-label">Created</span>
+                      <span className="cd-about-value">
+                        {new Date(community.created_at).toLocaleDateString("en-US", {
+                          year: "numeric", month: "short", day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "members" && (
+              <motion.div
+                key="members"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {/* Members Table Header */}
+                <div className="cd-members-table-header">
+                  <span className="cd-mtcol cd-mtcol-name">Member</span>
+                  <span className="cd-mtcol cd-mtcol-role">Role</span>
+                  <span className="cd-mtcol cd-mtcol-xp">XP</span>
+                  <span className="cd-mtcol cd-mtcol-level">Level</span>
+                  {(myRole === "owner" || myRole === "admin") && (
+                    <span className="cd-mtcol cd-mtcol-actions">Actions</span>
+                  )}
+                </div>
+
+                <div className="cd-members-list">
+                  {members.map((m) => {
+                    const profile = m.profiles || {};
+                    const roleInfo = ROLE_BADGE[m.role] || ROLE_BADGE.member;
+                    const canManage =
+                      (myRole === "owner" || myRole === "admin") &&
+                      m.user_id !== userId &&
+                      m.role !== "owner";
+                    const memberLevel = getCommunityLevel(m.xp || 0);
+
+                    return (
+                      <div key={m.user_id} className="cd-member-row">
+                        <div className="cd-mtcol cd-mtcol-name">
+                          <div className="cd-member-avatar">
+                            {(profile.identity || "?")[0].toUpperCase()}
+                          </div>
+                          <div className="cd-member-info">
+                            <span className="cd-member-name">
+                              {profile.identity || "User"}
+                              {profile.verified && <span className="cd-member-verified"> ✓</span>}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="cd-mtcol cd-mtcol-role">
+                          {roleInfo.label ? (
+                            <span className="cd-member-role-badge" style={{ color: roleInfo.color, borderColor: roleInfo.color + "40" }}>
+                              {roleInfo.label}
+                            </span>
+                          ) : (
+                            <span className="cd-member-role-badge cd-member-role-default">Member</span>
+                          )}
+                        </div>
+                        <div className="cd-mtcol cd-mtcol-xp">
+                          <span className="cd-member-xp-value">{m.xp || 0}</span>
+                        </div>
+                        <div className="cd-mtcol cd-mtcol-level">
+                          <span className="cd-member-level-tag">{memberLevel}</span>
+                        </div>
+                        {(myRole === "owner" || myRole === "admin") && (
+                          <div className="cd-mtcol cd-mtcol-actions">
+                            {canManage ? (
+                              <>
+                                <select
+                                  className="cd-role-select"
+                                  value={m.role}
+                                  onChange={(e) => updateRole(m.user_id, e.target.value)}
+                                >
+                                  <option value="member">Member</option>
+                                  <option value="moderator">Mod</option>
+                                  {myRole === "owner" && <option value="admin">Admin</option>}
+                                </select>
+                                <button
+                                  className="cd-ban-btn"
+                                  onClick={() => banUser(m.user_id, "Banned by moderator")}
+                                  title="Ban user"
+                                >
+                                  🚫
+                                </button>
+                              </>
+                            ) : (
+                              <span className="cd-no-action">—</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </motion.div>
             )}
 
