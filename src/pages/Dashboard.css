@@ -96,6 +96,17 @@
   padding: 0 0.75rem;
 }
 
+.d-nav-section {
+  padding: 1.2rem 1rem 0.35rem;
+  font-family: var(--d-font);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.2);
+  user-select: none;
+}
+
 .d-nav-item {
   display: block;
   width: 100%;

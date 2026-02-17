@@ -10,6 +10,10 @@ const NAV_ITEMS = [
   { label: "Leaderboard", path: "/leaderboard" },
   { label: "Global Live", path: "/global" },
   { label: "Network", path: "/network" },
+  { section: "Social" },
+  { label: "Feed", path: "/feed" },
+  { label: "Communities", path: "/communities" },
+  { section: "You" },
   { label: "Profile", path: "/profile" },
   { label: "Settings", path: "/settings" },
 ];
@@ -32,17 +36,21 @@ export default function DashboardLayout({ children, pageTitle = "DASHBOARD" }) {
         </div>
 
         <nav className="d-nav">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `d-nav-item${isActive ? " d-nav-active" : ""}`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+          {NAV_ITEMS.map((item, i) =>
+            item.section ? (
+              <div key={item.section} className="d-nav-section">{item.section}</div>
+            ) : (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `d-nav-item${isActive ? " d-nav-active" : ""}`
+                }
+              >
+                {item.label}
+              </NavLink>
+            )
+          )}
         </nav>
 
         <div className="d-sidebar-bottom">

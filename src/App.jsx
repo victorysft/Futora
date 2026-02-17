@@ -10,6 +10,9 @@ import GlobalLive from "./pages/GlobalLive";
 import Network from "./pages/Network";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import Feed from "./pages/Feed";
+import Communities from "./pages/Communities";
+import CommunityDetail from "./pages/CommunityDetail";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Onboarding from "./pages/Onboarding";
@@ -73,6 +76,9 @@ function App() {
           <Route path="/leaderboard" element={<DashboardGuard><Leaderboard /></DashboardGuard>} />
           <Route path="/global" element={<DashboardGuard><GlobalLive /></DashboardGuard>} />
           <Route path="/network" element={<DashboardGuard><Network /></DashboardGuard>} />
+          <Route path="/feed" element={<DashboardGuard><Feed /></DashboardGuard>} />
+          <Route path="/communities" element={<DashboardGuard><Communities /></DashboardGuard>} />
+          <Route path="/communities/:slug" element={<DashboardGuard><CommunityDetail /></DashboardGuard>} />
           <Route path="/profile" element={<DashboardGuard><Profile /></DashboardGuard>} />
           <Route path="/settings" element={<DashboardGuard><Settings /></DashboardGuard>} />
 
