@@ -1,0 +1,422 @@
+/* ════════════════════════════════════════════
+   FUTORA · Progress – Analytics Center
+   Dark · Minimal · Premium · Purple accents
+   ════════════════════════════════════════════ */
+
+/* ─── Page container (scrollable) ─── */
+.prog-content {
+  flex: 1;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.2) transparent;
+}
+
+.prog-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.prog-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.prog-content::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 4px;
+}
+
+/* ─── Card base ─── */
+.prog-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 1.75rem 2rem;
+  position: relative;
+}
+
+.prog-card-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 1.25rem;
+}
+
+/* ═══════ SECTION 1: MOMENTUM OVERVIEW ═══════ */
+.prog-overview {
+  padding: 2rem 2.5rem;
+}
+
+.prog-overview-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 0 0 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.prog-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.prog-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.prog-metric-num {
+  font-size: 2rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.prog-metric-num.accent {
+  color: #A78BFA;
+}
+
+.prog-metric-label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ═══════ SECTION 2: WEEKLY GRAPH ═══════ */
+.prog-weekly {
+  padding: 1.75rem 2rem 1.5rem;
+}
+
+.prog-graph-container {
+  margin-top: 0.5rem;
+  position: relative;
+}
+
+.prog-graph-svg {
+  display: block;
+  width: 100%;
+}
+
+.prog-graph-grid-line {
+  stroke: rgba(255, 255, 255, 0.04);
+  stroke-width: 1;
+}
+
+.prog-graph-line {
+  fill: none;
+  stroke: #8B5CF6;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.prog-graph-area {
+  fill: url(#progGradient);
+  opacity: 0.15;
+}
+
+.prog-graph-dot {
+  fill: #8B5CF6;
+  transition: r 0.2s ease;
+}
+
+.prog-graph-dot:hover {
+  r: 5;
+}
+
+.prog-graph-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.6rem 0.5rem 0;
+}
+
+.prog-graph-day {
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+}
+
+.prog-weekly-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.prog-weekly-pct {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: -0.02em;
+}
+
+.prog-weekly-sub {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ═══════ SECTION 3: 30-DAY HEATMAP ═══════ */
+.prog-heatmap {
+  padding: 1.75rem 2rem 1.5rem;
+}
+
+.prog-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  margin-top: 0.5rem;
+}
+
+.prog-heat-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: background 0.2s ease, transform 0.15s ease;
+  cursor: default;
+  position: relative;
+}
+
+.prog-heat-cell:hover {
+  transform: scale(1.15);
+  z-index: 2;
+}
+
+.prog-heat-cell.level-1 {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.prog-heat-cell.level-2 {
+  background: rgba(139, 92, 246, 0.3);
+}
+
+.prog-heat-cell.level-3 {
+  background: rgba(139, 92, 246, 0.5);
+}
+
+.prog-heat-cell.level-4 {
+  background: rgba(139, 92, 246, 0.75);
+}
+
+/* Tooltip */
+.prog-heat-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 15, 18, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  white-space: nowrap;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.4;
+}
+
+.prog-heat-cell:hover .prog-heat-tooltip {
+  opacity: 1;
+}
+
+.prog-heat-tooltip-date {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.prog-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.prog-legend-label {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.05em;
+}
+
+.prog-legend-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+/* ═══════ SECTION 4: PERFORMANCE BREAKDOWN ═══════ */
+.prog-perf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.prog-perf-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.prog-perf-title {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.25rem;
+}
+
+.prog-perf-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.prog-perf-row:last-child {
+  border-bottom: none;
+}
+
+.prog-perf-key {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.prog-perf-val {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.prog-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.prog-trend.improving {
+  background: rgba(139, 92, 246, 0.1);
+  color: #A78BFA;
+}
+
+.prog-trend.stable {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.prog-trend.declining {
+  background: rgba(239, 68, 68, 0.08);
+  color: rgba(239, 68, 68, 0.7);
+}
+
+/* ═══════ SECTION 5: XP GROWTH CURVE ═══════ */
+.prog-xp-card {
+  padding: 1.75rem 2rem 1.5rem;
+}
+
+.prog-xp-insight {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 1rem;
+  font-style: italic;
+}
+
+/* ─── Empty / Loading states ─── */
+.prog-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  gap: 1rem;
+  text-align: center;
+}
+
+.prog-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: #A78BFA;
+}
+
+.prog-empty-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.prog-empty-sub {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+  max-width: 300px;
+  line-height: 1.6;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+  .prog-content {
+    padding: 1.5rem 1.25rem 2rem;
+  }
+
+  .prog-metrics-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .prog-perf-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .prog-heatmap-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .prog-metrics-row {
+    grid-template-columns: 1fr;
+  }
+
+  .prog-overview {
+    padding: 1.5rem;
+  }
+
+  .prog-card {
+    padding: 1.25rem 1.25rem;
+  }
+}

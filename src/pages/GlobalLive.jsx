@@ -142,7 +142,7 @@ export default function GlobalLive() {
   useEffect(() => () => pulseTimers.current.forEach((t) => clearTimeout(t)), []);
 
   return (
-    <DashboardLayout pageTitle="">
+    <DashboardLayout pageTitle="GLOBAL LIVE">
       <div className="gl-page">
         {/* Deep space bg */}
         <div className="gl-bg" />

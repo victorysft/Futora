@@ -56,12 +56,14 @@ export default function DashboardLayout({ children, pageTitle = "DASHBOARD" }) {
       <div className="d-main">
         {/* ─── TOPBAR ─── */}
         <header className="d-topbar">
-          <span className="d-topbar-label">{pageTitle}</span>
-          <div className="d-topbar-identity">
-            <span className="d-topbar-becoming">BECOMING</span>
-            <span className="d-topbar-divider" />
-            <span className="d-topbar-name">{becoming}</span>
-          </div>
+          {pageTitle && <span className="d-topbar-label">{pageTitle}</span>}
+          {becoming && (
+            <div className="d-topbar-identity">
+              <span className="d-topbar-becoming">BECOMING</span>
+              <span className="d-topbar-divider" />
+              <span className="d-topbar-name">{becoming}</span>
+            </div>
+          )}
         </header>
 
         {/* ─── CONTENT ─── */}

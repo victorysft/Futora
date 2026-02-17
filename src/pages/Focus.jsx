@@ -301,9 +301,11 @@ function FocusIdentityCard({
   return (
     <div className="focus-header">
       <div className="focus-header-left">
-        <span className="focus-header-role">
-          BECOMING {(focus.becoming_role || profile?.becoming || "").toUpperCase()}
-        </span>
+        {(focus.becoming_role || profile?.becoming) && (
+          <span className="focus-header-role">
+            BECOMING {(focus.becoming_role || profile?.becoming).toUpperCase()}
+          </span>
+        )}
         <h1 className="focus-header-title">{focus.title}</h1>
         <div className="focus-header-meta">
           <div className="focus-meta-item">
