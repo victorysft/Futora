@@ -26,9 +26,9 @@ const TABS = ["Posts", "Focus Logs", "Achievements", "Stats"];
 
 /* -- Post type config -- */
 const POST_TYPE_MAP = {
-  progress: { label: "Progress", color: "#10B981", icon: "\u{1F4C8}" },
-  reflection: { label: "Reflection", color: "#8B5CF6", icon: "\u{1F4AD}" },
-  mission: { label: "Mission", color: "#3B82F6", icon: "\u{1F3AF}" },
+  progress: { label: "Progress", color: "#10B981", icon: "📈" },
+  reflection: { label: "Reflection", color: "#8B5CF6", icon: "💭" },
+  mission: { label: "Mission", color: "#3B82F6", icon: "🎯" },
 };
 
 /* -- Formatters -- */
@@ -133,7 +133,7 @@ function FollowButton({ status, onFollow, onUnfollow }) {
         onMouseLeave={function () { setHover(false); }}
         onClick={onUnfollow}
       >
-        {hover ? "Unfollow" : status === "mutual" ? "\u{1F91D} Friends" : "Following"}
+        {hover ? "Unfollow" : status === "mutual" ? "🤝 Friends" : "Following"}
       </button>
     );
   }
@@ -212,12 +212,12 @@ function HeroSection({ data, isOwn, followStatus, onFollow, onUnfollow, onEditPr
         )}
         {data.bio && <p className="prf-bio">{data.bio}</p>}
         {(data.missionStatement || data.focus) && (
-          <p className="prf-mission-text">\u{1F3AF} {data.missionStatement || data.focus}</p>
+          <p className="prf-mission-text">🎯 {data.missionStatement || data.focus}</p>
         )}
         <div className="prf-meta-row">
-          {data.location && <span className="prf-meta-item">\u{1F4CD} {data.location}</span>}
-          {data.memberSince && <span className="prf-meta-item">\u{1F4C5} Joined {data.memberSince}</span>}
-          {data.commitmentLevel && <span className="prf-meta-item">\u{26A1} {data.commitmentLevel}</span>}
+          {data.location && <span className="prf-meta-item">📍 {data.location}</span>}
+          {data.memberSince && <span className="prf-meta-item">📅 Joined {data.memberSince}</span>}
+          {data.commitmentLevel && <span className="prf-meta-item">⚡ {data.commitmentLevel}</span>}
         </div>
       </div>
 
@@ -233,11 +233,11 @@ function HeroSection({ data, isOwn, followStatus, onFollow, onUnfollow, onEditPr
 
       {/* Stats Strip */}
       <div className="prf-stats-strip">
-        <StatItem value={data.streak} label="Streak" icon="\u{1F525}" />
+        <StatItem value={data.streak} label="Streak" icon="🔥" />
         <div className="prf-stat-divider" />
         <StatItem value={data.focusScore} label="Focus Score" />
         <div className="prf-stat-divider" />
-        <StatItem value={"#" + (data.rank || "\u{2014}")} label="Rank" />
+        <StatItem value={"#" + (data.rank || "—")} label="Rank" />
         <div className="prf-stat-divider" />
         <StatItem value={data.totalFocusHours + "h"} label="Total Hours" />
         <div className="prf-stat-divider" />
@@ -353,10 +353,10 @@ function PostCard({ post, liked, reposted, onLike, onRepost, onDelete, isOwn }) 
 function FocusLogCard({ log }) {
   return (
     <motion.div className="prf-focus-log" variants={fadeUp}>
-      <div className="prf-log-icon">\u{26A1}</div>
+      <div className="prf-log-icon">⚡</div>
       <div className="prf-log-body">
         <span className="prf-log-name">{log.focusName}</span>
-        <span className="prf-log-meta">{fmtDuration(log.duration)} \u{00B7} +{log.xpEarned} XP</span>
+        <span className="prf-log-meta">{fmtDuration(log.duration)} · +{log.xpEarned} XP</span>
       </div>
       <span className="prf-log-date">{fmtDate(log.date)}</span>
     </motion.div>
@@ -371,7 +371,7 @@ function AchievementCard({ achievement }) {
     <motion.div className={"prf-achievement" + (achievement.earned ? "" : " locked")} variants={fadeUp}>
       <span className="prf-ach-icon">{achievement.icon}</span>
       <span className="prf-ach-label">{achievement.label}</span>
-      {!achievement.earned && <span className="prf-ach-lock">\u{1F512}</span>}
+      {!achievement.earned && <span className="prf-ach-lock">🔒</span>}
     </motion.div>
   );
 }
@@ -479,7 +479,7 @@ function AntiScrollOverlay({ onDismiss }) {
   return (
     <motion.div className="prf-anti-scroll" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="prf-anti-scroll-inner">
-        <div className="prf-anti-scroll-icon">\u{23F8}\u{FE0F}</div>
+        <div className="prf-anti-scroll-icon">⏸️</div>
         <h3>Time to Refocus</h3>
         <p>You have been scrolling for a while. Take a moment to reflect.</p>
         <div className="prf-anti-scroll-actions">
