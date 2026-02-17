@@ -14,7 +14,18 @@ import "./Dashboard.css";
 
 /* ── Helpers ── */
 function getToday() {
-  return new Date().toISOString().slice(0, 10);
+  // Local date — resets at local midnight, not UTC
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function daysBetweenDates(a, b) {
+  // Pure date-string comparison (YYYY-MM-DD) — no timezone drift
+  const [ay, am, ad] = a.split("-").map(Number);
+  const [by, bm, bd] = b.split("-").map(Number);
+  const da = new Date(ay, am - 1, ad);
+  const db = new Date(by, bm - 1, bd);
+  return Math.round((db - da) / 86_400_000);
 }
 
 const MILESTONES = [7, 14, 30, 60, 90, 180, 365];
@@ -79,7 +90,7 @@ export default function Dashboard() {
   const [weeklyData, setWeeklyData] = useState([0, 0, 0, 0, 0, 0, 0]);
 
   /* ── Real-time hooks ── */
-  const { onlineCount } = usePresence(user?.id);
+  const { onlineCount } = usePresence(user?.id, profile);
   const liveCounters = useLiveDashboard();
   const xpDailyProgress = useXPProgress(user?.id);
   const streakReminder = useStreakReminder(user?.id);
@@ -87,6 +98,7 @@ export default function Dashboard() {
 
   /* ── XP Toast state ── */
   const [toastData, setToastData] = useState({ show: false, xpGained: 0, streak: 0, rankChange: null, levelUp: null });
+  const [checkinError, setCheckinError] = useState("");
 
   /* ── Derived from profile ── */
   const streak = profile?.streak || 0;
@@ -209,6 +221,7 @@ export default function Dashboard() {
   const handleCheckIn = async () => {
     if (checking || checkedInToday || !user) return;
     setChecking(true);
+    setCheckinError("");
     try {
       const today = getToday();
 
@@ -226,19 +239,20 @@ export default function Dashboard() {
       let newStreakStartDate = today;
 
       if (prevLastCheckIn) {
-        const lastDate = new Date(prevLastCheckIn);
-        const todayDate = new Date(today);
-        const diffDays = Math.floor(
-          (todayDate - lastDate) / (1000 * 60 * 60 * 24)
-        );
+        // Compare as date strings (YYYY-MM-DD) — resets at local midnight
+        const diffDays = daysBetweenDates(prevLastCheckIn, today);
 
         if (diffDays === 1) {
+          // Consecutive day — extend streak
           newStreak = prevStreak + 1;
           newStreakStartDate = currentProfile?.streak_start_date || today;
         } else if (diffDays === 0) {
+          // Same day — already checked in, refresh to sync UI
+          await refreshProfile();
           setChecking(false);
           return;
         }
+        // diffDays > 1 → streak resets to 1 (default)
       }
 
       // XP cap: max 150 XP per day
@@ -270,7 +284,7 @@ export default function Dashboard() {
         .eq("id", user.id);
 
       // Insert checkin with date column for unique constraint
-      const { error: checkinError } = await supabase.from("checkins").insert({
+      const { error: checkinInsertError } = await supabase.from("checkins").insert({
         user_id: user.id,
         goal_id: null,
         minutes_worked: 30,
@@ -279,8 +293,9 @@ export default function Dashboard() {
         date: today,
       });
 
-      // If duplicate (unique constraint on user_id+date), silently skip
-      if (checkinError && checkinError.code === "23505") {
+      // If duplicate (unique constraint on user_id+date), still refresh profile
+      if (checkinInsertError && checkinInsertError.code === "23505") {
+        await refreshProfile();
         setChecking(false);
         return;
       }
@@ -333,6 +348,7 @@ export default function Dashboard() {
       });
     } catch (err) {
       console.error("Check-in failed:", err);
+      setCheckinError("Check-in failed. Please try again.");
     } finally {
       setChecking(false);
     }
@@ -500,8 +516,11 @@ export default function Dashboard() {
                 onClick={handleCheckIn}
                 disabled={checking || checkedInToday}
               >
-                {checking ? "RECORDING…" : checkedInToday ? "✓ CHECKED IN TODAY" : "START TODAY"}
+                {checking ? "RECORDING…" : checkedInToday ? "✓ CHECKED IN TODAY" : "CHECK IN"}
               </button>
+              {checkinError && (
+                <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "6px" }}>{checkinError}</p>
+              )}
             </div>
             <div className="d-hero-right">
               <div className="d-hero-streak">

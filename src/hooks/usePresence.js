@@ -16,7 +16,7 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
  *
  * Returns: { onlineCount: number, sessionId: string }
  */
-export function usePresence(userId) {
+export function usePresence(userId, profile) {
   const [onlineCount, setOnlineCount] = useState(0);
   const sessionIdRef = useRef(null);
   const heartbeatRef = useRef(null);
@@ -58,18 +58,18 @@ export function usePresence(userId) {
   const upsertSession = useCallback(async () => {
     if (!userId || !sessionIdRef.current) return;
     try {
-      await supabase.from("user_sessions").upsert(
-        { 
-          user_id: userId, 
-          session_id: sessionIdRef.current,
-          last_seen: new Date().toISOString() 
-        },
-        { onConflict: "session_id" }
-      );
+      const row = { 
+        user_id: userId, 
+        session_id: sessionIdRef.current,
+        last_seen: new Date().toISOString(),
+      };
+      if (profile?.country_code) row.country_code = profile.country_code;
+      if (profile?.country) row.country_name = profile.country;
+      await supabase.from("user_sessions").upsert(row, { onConflict: "session_id" });
     } catch {
       /* silent */
     }
-  }, [userId]);
+  }, [userId, profile?.country_code, profile?.country]);
 
   /* ── Remove session (by session_id, not user_id) ── */
   const removeSession = useCallback(async () => {
