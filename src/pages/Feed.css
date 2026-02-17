@@ -34,6 +34,11 @@
   z-index: 1;
 }
 
+/* ── Feed Container — prevents CLS ── */
+.fd-feed-container {
+  min-height: 600px;
+}
+
 /* ── Header ── */
 .fd-header {
   margin-bottom: 20px;

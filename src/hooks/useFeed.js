@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "../supabaseClient";
 
 /**
@@ -41,6 +41,10 @@ export function useFeed(userId, followingIds = []) {
   const pageRef = useRef(0);
   const channelRef = useRef(null);
 
+  // Stabilize followingIds to avoid re-renders on same values
+  const followingKey = followingIds.join(",");
+  const stableFollowingIds = useMemo(() => followingIds, [followingKey]);
+
   // ── Build query for current tab ──
   const buildQuery = useCallback((from, to) => {
     if (tab === "for-you") {
@@ -52,11 +56,11 @@ export function useFeed(userId, followingIds = []) {
         .range(from, to);
 
     } else if (tab === "following") {
-      if (!followingIds.length) return null;
+      if (!stableFollowingIds.length) return null;
       return supabase
         .from("posts")
         .select(POST_SELECT)
-        .in("user_id", followingIds)
+        .in("user_id", stableFollowingIds)
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -72,7 +76,7 @@ export function useFeed(userId, followingIds = []) {
     }
 
     return null;
-  }, [tab, followingIds]);
+  }, [tab, stableFollowingIds]);
 
   // ── Fetch posts ──
   const fetchPosts = useCallback(async (page = 0, append = false) => {
@@ -142,7 +146,7 @@ export function useFeed(userId, followingIds = []) {
         { event: "INSERT", schema: "public", table: "posts" },
         (payload) => {
           if (payload.new.user_id === userId) return;
-          if (tab === "following" && !followingIds.includes(payload.new.user_id)) return;
+          if (tab === "following" && !stableFollowingIds.includes(payload.new.user_id)) return;
           newPostsRef.current.push(payload.new);
           setNewCount((c) => c + 1);
         }
@@ -156,7 +160,7 @@ export function useFeed(userId, followingIds = []) {
         channelRef.current = null;
       }
     };
-  }, [tab, followingIds, userId]);
+  }, [tab, stableFollowingIds, userId]);
 
   // ── Load new posts (banner click) ──
   const loadNew = useCallback(() => {

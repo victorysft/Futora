@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabaseClient";
 
 /**
@@ -15,6 +15,7 @@ export function useFeedIntel(userId, followingIds = []) {
   const [trendingCommunities, setTrendingCommunities] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
+  const didFetchRef = useRef(false);
 
   const fetchIntel = useCallback(async () => {
     if (!userId) { setLoading(false); return; }
@@ -58,7 +59,11 @@ export function useFeedIntel(userId, followingIds = []) {
     }
   }, [userId, followingIds]);
 
-  useEffect(() => { fetchIntel(); }, [fetchIntel]);
+  useEffect(() => {
+    if (didFetchRef.current) return;
+    didFetchRef.current = true;
+    fetchIntel();
+  }, [fetchIntel]);
 
   return { suggestedUsers, trendingCommunities, leaderboard, loading };
 }

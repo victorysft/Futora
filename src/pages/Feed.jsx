@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "../components/DashboardLayout";
@@ -57,7 +57,7 @@ function getLevelTitle(xp) {
 /* ══════════════════════════════════════════════════════════
    SKELETON LOADER
    ══════════════════════════════════════════════════════════ */
-function SkeletonPost() {
+const SkeletonPost = memo(function SkeletonPost() {
   return (
     <div className="fd-post fd-skeleton">
       <div className="fd-skel-header">
@@ -72,12 +72,22 @@ function SkeletonPost() {
       <div className="fd-skel-line w50" />
     </div>
   );
+});
+
+function FeedSkeletons() {
+  return (
+    <div className="fd-posts">
+      <SkeletonPost />
+      <SkeletonPost />
+      <SkeletonPost />
+    </div>
+  );
 }
 
 /* ══════════════════════════════════════════════════════════
    COMPOSE BOX (Sticky)
    ══════════════════════════════════════════════════════════ */
-function ComposeBox({ onPost, composeRef }) {
+const ComposeBox = memo(function ComposeBox({ onPost, composeRef }) {
   const [type, setType] = useState("reflection");
   const [content, setContent] = useState("");
   const [posting, setPosting] = useState(false);
@@ -133,7 +143,7 @@ function ComposeBox({ onPost, composeRef }) {
       </div>
     </div>
   );
-}
+});
 
 /* ══════════════════════════════════════════════════════════
    VERIFIED BADGE (with glow for high rep)
@@ -154,7 +164,7 @@ function VerifiedBadge({ xp }) {
 /* ══════════════════════════════════════════════════════════
    POST CARD
    ══════════════════════════════════════════════════════════ */
-function PostCard({ post, userId, onLike, onRepost, onReport, onReply }) {
+const PostCard = memo(function PostCard({ post, userId, onLike, onRepost, onReport, onReply }) {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [replying, setReplying] = useState(false);
@@ -289,7 +299,7 @@ function PostCard({ post, userId, onLike, onRepost, onReport, onReply }) {
       )}
     </motion.div>
   );
-}
+});
 
 /* ══════════════════════════════════════════════════════════
    NEW POSTS BANNER (Sticky)
@@ -340,7 +350,7 @@ function AntiScrollModal({ onDismiss, onFocus }) {
 /* ══════════════════════════════════════════════════════════
    RIGHT PANEL — Intelligence sidebar
    ══════════════════════════════════════════════════════════ */
-function RightPanel({ suggestedUsers, trendingCommunities, leaderboard, userId }) {
+const RightPanel = memo(function RightPanel({ suggestedUsers, trendingCommunities, leaderboard, userId }) {
   const navigate = useNavigate();
 
   return (
@@ -414,7 +424,7 @@ function RightPanel({ suggestedUsers, trendingCommunities, leaderboard, userId }
       </div>
     </aside>
   );
-}
+});
 
 /* ══════════════════════════════════════════════════════════
    FEED PAGE — 3 Column Layout
@@ -424,7 +434,10 @@ export default function Feed() {
   const navigate = useNavigate();
   const userId = user?.id;
   const { following } = useFollowing(userId);
-  const followingIds = (following || []).map((f) => f.following_id);
+  const followingIds = useMemo(
+    () => (following || []).map((f) => f.following_id),
+    [following]
+  );
 
   const {
     posts, loading, hasMore, tab, setTab,
@@ -544,20 +557,10 @@ export default function Feed() {
           {/* Compose (sticky) */}
           <ComposeBox onPost={createPost} composeRef={composeRef} />
 
-          {/* Posts */}
-          <motion.div
-            className="fd-posts"
-            variants={stagger}
-            initial="hidden"
-            animate="visible"
-            key={tab}
-          >
+          {/* Posts — single stable container, no remount on tab change */}
+          <div className="fd-feed-container">
             {loading && posts.length === 0 ? (
-              <>
-                <SkeletonPost />
-                <SkeletonPost />
-                <SkeletonPost />
-              </>
+              <FeedSkeletons />
             ) : posts.length === 0 ? (
               <div className="fd-empty">
                 <span className="fd-empty-icon">📡</span>
@@ -565,17 +568,24 @@ export default function Feed() {
                 <p>{tab === "following" ? "Follow others to see their posts here" : "Be the first to share something"}</p>
               </div>
             ) : (
-              posts.map((p) => (
-                <PostCard
-                  key={p.id}
-                  post={p}
-                  userId={userId}
-                  onLike={likePost}
-                  onRepost={repostPost}
-                  onReport={reportPost}
-                  onReply={replyToPost}
-                />
-              ))
+              <motion.div
+                className="fd-posts"
+                variants={stagger}
+                initial="hidden"
+                animate="visible"
+              >
+                {posts.map((p) => (
+                  <PostCard
+                    key={p.id}
+                    post={p}
+                    userId={userId}
+                    onLike={likePost}
+                    onRepost={repostPost}
+                    onReport={reportPost}
+                    onReply={replyToPost}
+                  />
+                ))}
+              </motion.div>
             )}
 
             {hasMore && <div ref={sentinelRef} className="fd-sentinel" />}
@@ -585,7 +595,7 @@ export default function Feed() {
                 <div className="fd-spinner small" />
               </div>
             )}
-          </motion.div>
+          </div>
         </div>
 
         {/* ═══ RIGHT INTELLIGENCE PANEL ═══ */}
