@@ -96,6 +96,7 @@ function App() {
           <Route path="/communities" element={<DashboardGuard><Communities /></DashboardGuard>} />
           <Route path="/communities/:slug" element={<DashboardGuard><CommunityDetail /></DashboardGuard>} />
           <Route path="/profile" element={<DashboardGuard><Profile /></DashboardGuard>} />
+          <Route path="/profile/:userId" element={<DashboardGuard><Profile /></DashboardGuard>} />
           <Route path="/settings" element={<DashboardGuard><Settings /></DashboardGuard>} />
 
           {/* Catch-all — smart redirect, not blind /login */}

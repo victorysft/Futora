@@ -1,44 +1,36 @@
-/* ═══════════════════════════════════════════
-   FUTORA · Profile 3.0 — Digital Identity Center
-   ═══════════════════════════════════════════ */
+﻿/* =========================================================
+   FUTORA  Profile 4.0  X-style Identity Center
+   ========================================================= */
 
-/* ── Scrollable content ── */
 .prf-content {
   width: 100%;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 1.5rem;
-  box-sizing: border-box;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0;
+  min-height: 100vh;
 }
 
 .prf-container {
-  max-width: 640px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding-bottom: 3rem;
+  gap: 0;
 }
 
-/* ══════════════════════════════════════════════
-   LOADING
-   ══════════════════════════════════════════════ */
+/*  Loading  */
 .prf-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  padding: 4rem 0;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.85rem;
-  letter-spacing: 0.06em;
+  gap: 16px;
+  padding: 120px 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
 }
 
 .prf-loading-pulse {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 2px solid rgba(139, 92, 246, 0.2);
   border-top-color: #8B5CF6;
@@ -49,167 +41,256 @@
   to { transform: rotate(360deg); }
 }
 
-/* ══════════════════════════════════════════════
+/* =========================================================
    HERO SECTION
-   ══════════════════════════════════════════════ */
+   ========================================================= */
 .prf-hero {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.06) 0%, rgba(59, 130, 246, 0.04) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  padding: 1.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.prf-hero-banner {
+  width: 100%;
+  height: 160px;
+  background: linear-gradient(135deg, #1a0a2e 0%, #0f172a 40%, #1e1b4b 70%, #0c0a1d 100%);
   position: relative;
   overflow: hidden;
 }
 
-.prf-hero::before {
+.prf-hero-banner::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 60% 40% at 20% 10%, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
-  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 120%, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
 }
 
-/* ── Avatar + Identity Row ── */
 .prf-hero-top {
   display: flex;
-  gap: 1.25rem;
   align-items: flex-start;
+  justify-content: space-between;
+  padding: 0 20px;
+  margin-top: -44px;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
+/*  Avatar  */
 .prf-avatar {
-  width: 72px;
-  height: 72px;
+  position: relative;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%);
+  background: linear-gradient(135deg, #1a1a2e, #16162a);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  position: relative;
+  overflow: hidden;
+  border: 4px solid #080A12;
+}
+
+.prf-avatar-with-ring {
+  border: 4px solid #080A12;
+}
+
+.prf-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .prf-avatar-letter {
-  font-size: 1.75rem;
+  color: #A78BFA;
   font-weight: 700;
-  color: white;
-  text-transform: uppercase;
-  line-height: 1;
+  font-family: "Inter", sans-serif;
+  user-select: none;
 }
 
 .prf-avatar-ring {
   position: absolute;
   inset: -3px;
   border-radius: 50%;
-  border: 2px solid rgba(139, 92, 246, 0.3);
+  border: 2px solid rgba(139, 92, 246, 0.4);
+  pointer-events: none;
   animation: prf-ring-pulse 3s ease-in-out infinite;
 }
 
 @keyframes prf-ring-pulse {
-  0%, 100% { border-color: rgba(139, 92, 246, 0.3); transform: scale(1); }
-  50% { border-color: rgba(139, 92, 246, 0.5); transform: scale(1.03); }
+  0%, 100% { border-color: rgba(139, 92, 246, 0.3); }
+  50% { border-color: rgba(139, 92, 246, 0.6); }
 }
 
+/*  Hero Actions  */
+.prf-hero-actions {
+  margin-top: 52px;
+}
+
+.prf-edit-btn {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.prf-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/*  Follow Button  */
+.prf-follow-btn {
+  padding: 8px 24px;
+  border-radius: 20px;
+  border: none;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 100px;
+}
+
+.prf-follow-btn:hover {
+  background: #e0e0e0;
+}
+
+.prf-follow-btn.following {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.prf-follow-btn.following:hover,
+.prf-follow-btn.following.unfollow-hover {
+  border-color: #EF4444;
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.prf-follow-btn.pending {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+}
+
+/*  Identity Block  */
 .prf-identity {
-  flex: 1;
-  min-width: 0;
+  padding: 12px 20px 16px;
 }
 
 .prf-name-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .prf-name {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
   margin: 0;
   line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .prf-verified-badge {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.4));
+}
+
+.prf-discipline-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .prf-becoming {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.45);
-  margin: 0.25rem 0 0;
-  letter-spacing: 0.04em;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 4px 0 0;
 }
 
 .prf-becoming span {
   color: #A78BFA;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .prf-bio {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.55);
-  margin: 0.5rem 0 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 8px 0 0;
   line-height: 1.5;
+}
+
+.prf-mission-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 6px 0 0;
+  font-style: italic;
 }
 
 .prf-meta-row {
   display: flex;
-  gap: 1rem;
-  margin-top: 0.5rem;
+  gap: 16px;
   flex-wrap: wrap;
+  margin-top: 8px;
 }
 
 .prf-meta-item {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.35);
-  letter-spacing: 0.03em;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
-/* ── Level Block ── */
+/*  Level Block  */
 .prf-level-block {
-  position: relative;
-  z-index: 1;
+  padding: 0 20px 12px;
 }
 
 .prf-level-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 10px;
+  margin-bottom: 6px;
 }
 
 .prf-level-badge {
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 700;
-  color: #8B5CF6;
+  color: #A78BFA;
   background: rgba(139, 92, 246, 0.12);
-  padding: 0.15rem 0.5rem;
-  border-radius: 6px;
-  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .prf-level-title {
-  font-size: 0.8rem;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.5);
   font-weight: 500;
-  letter-spacing: 0.04em;
 }
 
-/* ── XP Bar ── */
+.prf-xp-total {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-left: auto;
+}
+
 .prf-xp-bar-wrap {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
 .prf-xp-bar {
@@ -222,249 +303,217 @@
 
 .prf-xp-fill {
   height: 100%;
-  background: linear-gradient(90deg, #8B5CF6, #A78BFA);
+  background: linear-gradient(90deg, #7C3AED, #A78BFA);
   border-radius: 3px;
-  box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
-  position: relative;
-}
-
-.prf-xp-fill::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 20px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15));
-  border-radius: 0 3px 3px 0;
 }
 
 .prf-xp-text {
-  font-size: 0.7rem;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.35);
   white-space: nowrap;
-  letter-spacing: 0.04em;
 }
 
-/* ── Stats Strip ── */
+/*  Stats Strip  */
 .prf-stats-strip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.75rem 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  position: relative;
-  z-index: 1;
-  flex-wrap: wrap;
+  padding: 12px 20px 16px;
+  gap: 0;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .prf-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 2px;
+  padding: 0 14px;
   min-width: 0;
 }
 
+.prf-stat-clickable {
+  cursor: pointer;
+}
+
+.prf-stat-clickable:hover .prf-stat-value {
+  color: #A78BFA;
+}
+
 .prf-stat-value {
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
-  line-height: 1.2;
+  color: #fff;
+  white-space: nowrap;
+  transition: color 0.2s;
 }
 
 .prf-stat-label {
-  font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.3);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.3px;
   white-space: nowrap;
 }
 
 .prf-stat-divider {
   width: 1px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.06);
+  height: 28px;
+  background: rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
 
-/* ── Mission ── */
-.prf-mission {
-  position: relative;
-  z-index: 1;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.prf-mission-label {
-  font-size: 0.6rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.25);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  display: block;
-  margin-bottom: 0.35rem;
-}
-
-.prf-mission-text {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin: 0;
-  line-height: 1.5;
-  font-style: italic;
-}
-
-/* ══════════════════════════════════════════════
+/* =========================================================
    TABS
-   ══════════════════════════════════════════════ */
+   ========================================================= */
 .prf-tabs {
   display: flex;
-  gap: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(8, 10, 18, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .prf-tab {
   flex: 1;
+  padding: 14px 0;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 0.78rem;
-  font-weight: 500;
-  padding: 0.7rem 0.5rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
-  border-bottom: 2px solid transparent;
+  position: relative;
+  transition: color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
+  gap: 6px;
 }
 
 .prf-tab:hover {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .prf-tab.active {
-  color: rgba(255, 255, 255, 0.85);
-  border-bottom-color: #8B5CF6;
+  color: #fff;
+}
+
+.prf-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 3px;
+  background: #8B5CF6;
+  border-radius: 3px 3px 0 0;
 }
 
 .prf-tab-badge {
-  font-size: 0.6rem;
-  font-weight: 700;
+  font-size: 11px;
   background: rgba(139, 92, 246, 0.2);
   color: #A78BFA;
-  padding: 0.1rem 0.35rem;
-  border-radius: 8px;
-  line-height: 1;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-weight: 700;
 }
 
-/* ══════════════════════════════════════════════
-   TAB CONTENT
-   ══════════════════════════════════════════════ */
+/*  Tab Content  */
 .prf-tab-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  padding: 0;
 }
 
-/* ══════════════════════════════════════════════
+/* =========================================================
    COMPOSE POST
-   ══════════════════════════════════════════════ */
+   ========================================================= */
 .prf-compose {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .prf-compose-types {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .prf-type-btn {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.72rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.prf-type-btn:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.6);
+.prf-type-btn.active {
+  background: color-mix(in srgb, var(--type-color) 15%, transparent);
+  border-color: color-mix(in srgb, var(--type-color) 30%, transparent);
+  color: var(--type-color);
 }
 
-.prf-type-btn.active {
-  border-color: var(--type-color, #8B5CF6);
-  color: var(--type-color, #8B5CF6);
-  background: color-mix(in srgb, var(--type-color, #8B5CF6) 8%, transparent);
+.prf-type-btn:hover:not(.active) {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .prf-compose-input {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.85rem;
-  padding: 0.65rem 0.75rem;
-  resize: vertical;
-  min-height: 60px;
-  max-height: 150px;
-  font-family: inherit;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: #fff;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+  resize: none;
   line-height: 1.5;
   transition: border-color 0.2s;
 }
 
-.prf-compose-input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
-}
-
 .prf-compose-input:focus {
   outline: none;
-  border-color: rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.prf-compose-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
 }
 
 .prf-compose-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 10px;
 }
 
 .prf-char-count {
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .prf-post-btn {
-  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+  padding: 7px 20px;
+  border-radius: 20px;
   border: none;
-  color: white;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
+  background: #8B5CF6;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
-  letter-spacing: 0.04em;
+  transition: all 0.2s;
 }
 
 .prf-post-btn:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  background: #7C3AED;
 }
 
 .prf-post-btn:disabled {
@@ -472,79 +521,74 @@
   cursor: not-allowed;
 }
 
-/* ══════════════════════════════════════════════
+/* =========================================================
    POST CARD
-   ══════════════════════════════════════════════ */
-.prf-posts-list,
-.prf-logs-list {
+   ========================================================= */
+.prf-posts-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
 .prf-post {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 1rem;
-  transition: border-color 0.2s;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.15s;
 }
 
 .prf-post:hover {
-  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .prf-post-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
 .prf-post-type {
-  font-size: 0.68rem;
+  font-size: 12px;
   font-weight: 600;
-  padding: 0.15rem 0.45rem;
+  padding: 3px 10px;
+  border-radius: 10px;
   border: 1px solid;
-  border-radius: 4px;
-  letter-spacing: 0.04em;
 }
 
 .prf-post-time {
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.25);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .prf-post-content {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0 0 0.75rem;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.85);
   line-height: 1.55;
+  margin: 0;
   word-break: break-word;
 }
 
 .prf-post-actions {
   display: flex;
-  gap: 0.75rem;
-  align-items: center;
+  gap: 24px;
+  margin-top: 10px;
 }
 
 .prf-action-btn {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 5px;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.25);
-  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 12px;
   cursor: pointer;
-  padding: 0.25rem 0.35rem;
-  border-radius: 4px;
-  transition: all 0.2s;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: all 0.15s;
 }
 
 .prf-action-btn:hover {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -561,135 +605,144 @@
   background: rgba(239, 68, 68, 0.08);
 }
 
-/* ══════════════════════════════════════════════
+/* =========================================================
    FOCUS LOG CARD
-   ══════════════════════════════════════════════ */
+   ========================================================= */
+.prf-logs-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .prf-focus-log {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  transition: border-color 0.2s;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.15s;
 }
 
 .prf-focus-log:hover {
-  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .prf-log-icon {
-  font-size: 1rem;
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 10px;
   flex-shrink: 0;
 }
 
 .prf-log-body {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 2px;
+  flex: 1;
   min-width: 0;
 }
 
 .prf-log-name {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .prf-log-meta {
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .prf-log-date {
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
-/* ══════════════════════════════════════════════
+/* =========================================================
    ACHIEVEMENT CARD
-   ══════════════════════════════════════════════ */
+   ========================================================= */
 .prf-achievements-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 16px 20px;
 }
 
 .prf-achievement {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.9rem 0.6rem;
+  gap: 6px;
+  padding: 16px 10px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  transition: all 0.2s;
+  border-radius: 12px;
   position: relative;
+  transition: all 0.2s;
 }
 
-.prf-achievement:hover:not(.locked) {
-  border-color: rgba(139, 92, 246, 0.2);
-  background: rgba(139, 92, 246, 0.04);
+.prf-achievement:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.05);
 }
 
 .prf-achievement.locked {
-  opacity: 0.35;
+  opacity: 0.4;
 }
 
 .prf-ach-icon {
-  font-size: 1.3rem;
-  line-height: 1;
+  font-size: 24px;
 }
 
 .prf-ach-label {
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
   text-align: center;
-  line-height: 1.3;
-  font-weight: 500;
 }
 
 .prf-ach-lock {
   position: absolute;
-  top: 0.4rem;
-  right: 0.4rem;
-  font-size: 0.6rem;
-  opacity: 0.5;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
 }
 
-/* ══════════════════════════════════════════════
+/* =========================================================
    STATS TAB
-   ══════════════════════════════════════════════ */
+   ========================================================= */
 .prf-stats-tab {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 16px;
+  padding: 16px 20px;
 }
 
 .prf-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  padding: 1.25rem;
+  border-radius: 14px;
+  padding: 16px;
 }
 
 .prf-card-title {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
-  margin: 0 0 0.75rem;
-  letter-spacing: 0.04em;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* ── Heatmap ── */
+/* Heatmap */
 .prf-heatmap-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
@@ -699,28 +752,13 @@
 .prf-heat-cell {
   aspect-ratio: 1;
   border-radius: 3px;
-  transition: background 0.2s;
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.prf-heat-cell.intensity-0 { background: rgba(255, 255, 255, 0.04); }
 .prf-heat-cell.intensity-1 { background: rgba(139, 92, 246, 0.15); }
 .prf-heat-cell.intensity-2 { background: rgba(139, 92, 246, 0.3); }
 .prf-heat-cell.intensity-3 { background: rgba(139, 92, 246, 0.5); }
-.prf-heat-cell.intensity-4 { background: rgba(139, 92, 246, 0.75); box-shadow: 0 0 4px rgba(139, 92, 246, 0.3); }
-
-.prf-heatmap-legend {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  justify-content: flex-end;
-  margin-top: 0.5rem;
-}
-
-.prf-heatmap-legend span {
-  font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.2);
-  margin: 0 0.2rem;
-}
+.prf-heat-cell.intensity-4 { background: rgba(139, 92, 246, 0.75); }
 
 .prf-heat-cell.legend {
   width: 12px;
@@ -728,168 +766,136 @@
   aspect-ratio: unset;
 }
 
-/* ── XP Curve ── */
+.prf-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* XP Curve */
 .prf-xp-graph {
   width: 100%;
-  overflow: hidden;
-  border-radius: 6px;
+  height: 80px;
 }
 
 .prf-graph-svg {
   width: 100%;
-  height: 100px;
-  display: block;
+  height: 100%;
 }
 
 .prf-xp-curve-footer {
   display: flex;
   justify-content: space-between;
-  margin-top: 0.35rem;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 6px;
 }
 
-.prf-xp-curve-footer span {
-  font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.2);
-}
-
-/* ══════════════════════════════════════════════
+/* =========================================================
    EMPTY STATE
-   ══════════════════════════════════════════════ */
+   ========================================================= */
 .prf-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1.5rem;
-}
-
-.prf-empty p {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.25);
   text-align: center;
-  margin: 0;
-  line-height: 1.5;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 14px;
 }
 
-/* ══════════════════════════════════════════════
+/* =========================================================
    ANTI-SCROLL OVERLAY
-   ══════════════════════════════════════════════ */
+   ========================================================= */
 .prf-anti-scroll {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(6, 6, 8, 0.92);
-  backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(8px);
 }
 
 .prf-anti-scroll-inner {
   text-align: center;
   max-width: 340px;
-  padding: 2rem;
+  padding: 40px 30px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
 }
 
 .prf-anti-scroll-icon {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
+  font-size: 40px;
+  margin-bottom: 16px;
 }
 
 .prf-anti-scroll-inner h3 {
-  font-size: 1.2rem;
+  font-size: 18px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
-  margin: 0 0 0.5rem;
+  color: #fff;
+  margin: 0 0 8px;
 }
 
 .prf-anti-scroll-inner p {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.45);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 20px;
   line-height: 1.5;
-  margin: 0 0 1.5rem;
 }
 
 .prf-anti-scroll-actions {
   display: flex;
   justify-content: center;
-  gap: 0.75rem;
 }
 
 .prf-anti-btn {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.82rem;
-  font-weight: 500;
-  padding: 0.5rem 1.25rem;
-  border-radius: 8px;
+  padding: 10px 24px;
+  border-radius: 20px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .prf-anti-btn.primary {
-  background: linear-gradient(135deg, #8B5CF6, #7C3AED);
-  border-color: transparent;
-  color: white;
+  background: #8B5CF6;
+  color: #fff;
 }
 
-.prf-anti-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+.prf-anti-btn.primary:hover {
+  background: #7C3AED;
 }
 
-/* ══════════════════════════════════════════════
+/* =========================================================
    RESPONSIVE
-   ══════════════════════════════════════════════ */
-@media (max-width: 640px) {
+   ========================================================= */
+@media (max-width: 768px) {
   .prf-content {
-    padding: 1rem;
+    max-width: 100%;
   }
 
-  .prf-hero {
-    padding: 1.25rem;
-  }
-
-  .prf-hero-top {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-
-  .prf-name-row {
-    justify-content: center;
-  }
-
-  .prf-meta-row {
-    justify-content: center;
+  .prf-hero-banner {
+    height: 120px;
   }
 
   .prf-stats-strip {
-    gap: 0.25rem;
+    padding: 10px 12px;
+  }
+
+  .prf-stat {
+    padding: 0 8px;
   }
 
   .prf-stat-value {
-    font-size: 0.85rem;
-  }
-
-  .prf-stat-label {
-    font-size: 0.55rem;
-  }
-
-  .prf-stat-divider {
-    height: 18px;
+    font-size: 14px;
   }
 
   .prf-achievements-grid {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  }
-
-  .prf-heatmap-grid {
-    grid-template-columns: repeat(6, 1fr);
-  }
-
-  .prf-tab {
-    font-size: 0.7rem;
-    padding: 0.6rem 0.3rem;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
 }
