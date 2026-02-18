@@ -1,25 +1,53 @@
 /* ═══════════════════════════════════════════
    FUTORA  Community Detail 2.0 CSS
-   Three-column (sidebar + content + insights)
+   Unified 3-column layout matching Feed.
+   Left sidebar (DashboardLayout) + center content + right insights.
    ═══════════════════════════════════════════ */
 
-/* ── Layout: content + insights panel ── */
-.cd-layout {
+/* ── Page — 3-column grid matching Feed ── */
+.cd-page {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 24px;
+  grid-template-columns: 1fr minmax(700px, 900px) 400px;
+  gap: 0;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 24px 24px 80px;
-  align-items: start;
+  min-height: calc(100vh - 64px);
+  padding: 0;
 }
-.cd-content { min-width: 0; }
+
+/* Center column */
+.cd-content {
+  grid-column: 2;
+  border-left: 1px solid var(--d-border, rgba(255,255,255,0.06));
+  border-right: 1px solid var(--d-border, rgba(255,255,255,0.06));
+  min-height: 100vh;
+  padding: 24px 24px 80px;
+}
+
+@media (max-width: 1200px) {
+  .cd-page {
+    grid-template-columns: 1fr minmax(500px, 900px);
+  }
+  .cd-insights {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .cd-page {
+    grid-template-columns: 1fr;
+  }
+  .cd-content {
+    grid-column: 1;
+    padding: 16px 12px 60px;
+  }
+}
 
 /* ── Banner + Hero ── */
 .cd-hero {
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
+  background: var(--d-card-bg, rgba(255,255,255,0.03));
+  border: 1px solid var(--d-card-border, rgba(255,255,255,0.06));
+  border-radius: 4px;
   overflow: hidden;
   margin-bottom: 16px;
 }
@@ -186,9 +214,9 @@
 .cd-tabs {
   display: flex;
   gap: 2px;
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 10px;
+  background: var(--d-card-bg, rgba(255,255,255,0.03));
+  border: 1px solid var(--d-card-border, rgba(255,255,255,0.06));
+  border-radius: 4px;
   padding: 3px;
   margin-bottom: 16px;
 }
@@ -215,9 +243,9 @@
 
 /* ── Compose ── */
 .cd-compose {
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
+  background: var(--d-card-bg, rgba(255,255,255,0.03));
+  border: 1px solid var(--d-card-border, rgba(255,255,255,0.06));
+  border-radius: 4px;
   padding: 16px;
   margin-bottom: 14px;
 }
@@ -291,9 +319,9 @@
 
 /* ── Post Card ── */
 .cd-post {
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
+  background: var(--d-card-bg, rgba(255,255,255,0.03));
+  border: 1px solid var(--d-card-border, rgba(255,255,255,0.06));
+  border-radius: 4px;
   padding: 16px;
   margin-bottom: 10px;
   transition: border-color 0.2s;
@@ -603,9 +631,9 @@
 /* ── About tab ── */
 .cd-about { display: flex; flex-direction: column; gap: 14px; }
 .cd-about-section {
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 12px;
+  background: var(--d-card-bg, rgba(255,255,255,0.03));
+  border: 1px solid var(--d-card-border, rgba(255,255,255,0.06));
+  border-radius: 4px;
   padding: 16px;
 }
 .cd-section-title {
@@ -658,9 +686,9 @@
 
 /* ── Rules tab ── */
 .cd-rules-panel {
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 12px;
+  background: var(--d-card-bg, rgba(255,255,255,0.03));
+  border: 1px solid var(--d-card-border, rgba(255,255,255,0.06));
+  border-radius: 4px;
   padding: 20px;
 }
 .cd-rules-text {
@@ -734,17 +762,23 @@
    INSIGHTS PANEL (right side)
    ═══════════════════════════════════════════ */
 .cd-insights {
-  position: sticky;
-  top: 24px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+.cd-insights::-webkit-scrollbar {
+  width: 0;
 }
 .cd-insight-card {
-  background: rgba(255,255,255,0.025);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-  padding: 18px;
+  background: var(--d-card-bg, rgba(255,255,255,0.03));
+  border: 1px solid var(--d-card-border, rgba(255,255,255,0.06));
+  border-radius: 4px;
+  padding: 16px;
 }
 .cd-insight-title {
   font-family: var(--d-font, "Inter", sans-serif);
@@ -860,26 +894,12 @@
 }
 
 /* ═══════ Responsive ═══════ */
-@media (max-width: 1024px) {
-  .cd-layout {
-    grid-template-columns: 1fr;
-    padding: 20px 16px 60px;
-  }
-  .cd-insights {
-    position: static;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-}
 @media (max-width: 640px) {
-  .cd-layout { padding: 16px 12px 60px; }
   .cd-banner { height: 120px; }
   .cd-name { font-size: 18px; }
   .cd-hero-body { flex-direction: column; gap: 10px; }
   .cd-hero-avatar { margin-top: -24px; }
   .cd-hero-actions { width: 100%; }
   .cd-hero-actions button { flex: 1; }
-  .cd-insights { grid-template-columns: 1fr; }
   .cd-tabs { overflow-x: auto; }
 }

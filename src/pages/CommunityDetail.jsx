@@ -20,6 +20,7 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import DashboardLayout from "../components/DashboardLayout";
 import { useAuth } from "../hooks/useAuth";
 import { useCommunityDetail, getCommunityLevel } from "../hooks/useCommunities";
 import "./CommunityDetail.css";
@@ -342,22 +343,26 @@ export default function CommunityDetail() {
   // Loading states
   if (resolving || (loading && !community)) {
     return (
-      <div className="cd-loading">
-        <div className="cd-spinner" />
-        <span>Loading community...</span>
-      </div>
+      <DashboardLayout pageTitle="COMMUNITY">
+        <div className="cd-loading">
+          <div className="cd-spinner" />
+          <span>Loading community...</span>
+        </div>
+      </DashboardLayout>
     );
   }
 
   if (!community) {
     return (
-      <div className="cd-empty">
-        <h3>Community not found</h3>
-        <p>This community may have been removed or the link is incorrect.</p>
-        <button className="cd-empty-btn" onClick={() => navigate("/communities")}>
-          Back to communities
-        </button>
-      </div>
+      <DashboardLayout pageTitle="COMMUNITY">
+        <div className="cd-empty">
+          <h3>Community not found</h3>
+          <p>This community may have been removed or the link is incorrect.</p>
+          <button className="cd-empty-btn" onClick={() => navigate("/communities")}>
+            Back to communities
+          </button>
+        </div>
+      </DashboardLayout>
     );
   }
 
@@ -365,9 +370,9 @@ export default function CommunityDetail() {
   const canPost = !!myRole;
 
   return (
-    <div className="cd-layout">
-      {/* ── Left / Center content ── */}
-      <div className="cd-content">
+    <DashboardLayout pageTitle={community.name?.toUpperCase() || "COMMUNITY"}>
+      <div className="cd-page">
+        <div className="cd-content">
         {/* Hero */}
         <div className="cd-hero">
           <div
@@ -609,14 +614,14 @@ export default function CommunityDetail() {
         )}
       </div>
 
-      {/* ── Right column: Insights panel ── */}
-      <InsightsPanel
-        community={community}
-        members={members}
-        insights={insights}
-        myRole={myRole}
-        onJoin={joinCommunity}
-      />
-    </div>
+        <InsightsPanel
+          community={community}
+          members={members}
+          insights={insights}
+          myRole={myRole}
+          onJoin={joinCommunity}
+        />
+      </div>
+    </DashboardLayout>
   );
 }

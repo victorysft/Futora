@@ -12,8 +12,10 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import DashboardLayout from "../components/DashboardLayout";
 import { useAuth } from "../hooks/useAuth";
 import { useCommunityList } from "../hooks/useCommunities";
+import { useFeedIntel } from "../hooks/useFeedIntel";
 import "./Communities.css";
 
 const CATEGORIES = [
@@ -235,6 +237,45 @@ function CreateCommunityModal({ onClose, onCreate }) {
 }
 
 /* ═══════════════════════════════════════════════════
+   Shared Right Panel — matches Feed layout
+   ═══════════════════════════════════════════════════ */
+function CommunitiesRightPanel({ trendingCommunities, leaderboard }) {
+  const navigate = useNavigate();
+  return (
+    <aside className="feed-right">
+      <div className="feed-panel-card">
+        <h3 className="feed-panel-title">Trending Communities</h3>
+        {trendingCommunities.length === 0 && <span className="feed-panel-empty">No communities yet</span>}
+        {trendingCommunities.slice(0, 4).map((c) => (
+          <div key={c.id} className="feed-trend-item" onClick={() => navigate("/communities/" + (c.slug || c.id))}>
+            <span className="feed-trend-name">{c.name}</span>
+            <span className="feed-trend-count">{c.members_count || 0} members</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="feed-panel-card">
+        <h3 className="feed-panel-title">Discipline Leaderboard</h3>
+        {leaderboard.length === 0 && <span className="feed-panel-empty">No data yet</span>}
+        {leaderboard.map((u, i) => (
+          <div key={u.id} className="feed-lb-row" onClick={() => navigate("/profile/" + u.id)}>
+            <span className="feed-lb-rank">#{i + 1}</span>
+            <span className="feed-lb-name">{u.identity || "User"}</span>
+            <span className="feed-lb-xp">{u.xp || 0} XP</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="feed-panel-card feed-focus-cta">
+        <h4>Ready to focus?</h4>
+        <p>Stop scrolling. Start building.</p>
+        <button className="feed-cta-btn" onClick={() => navigate("/focus")}>Start Focus</button>
+      </div>
+    </aside>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
    Communities Page
    ═══════════════════════════════════════════════════ */
 export default function Communities() {
@@ -252,6 +293,8 @@ export default function Communities() {
     search: searchFn,
     loadMore,
   } = useCommunityList(user?.id);
+
+  const { trendingCommunities, leaderboard } = useFeedIntel(user?.id, []);
 
   const [view, setView] = useState("browse");
   const [searchTerm, setSearchTerm] = useState("");
@@ -311,90 +354,96 @@ export default function Communities() {
   }, [view, hasMore, loading, loadMore, sort, searchTerm]);
 
   return (
-    <div className="cm-page">
-      {/* Header */}
-      <div className="cm-header">
-        <div className="cm-header-left">
-          <h1 className="cm-title">Communities</h1>
-          <p className="cm-subtitle">Focused groups building together</p>
-        </div>
-        <button className="cm-create-btn" onClick={() => setShowCreate(true)}>
-          Create community
-        </button>
-      </div>
-
-      {/* Controls */}
-      <div className="cm-controls">
-        <div className="cm-view-tabs">
-          <button
-            className={`cm-vtab ${view === "browse" ? "active" : ""}`}
-            onClick={() => setView("browse")}
-          >
-            Browse
-          </button>
-          <button
-            className={`cm-vtab ${view === "mine" ? "active" : ""}`}
-            onClick={() => setView("mine")}
-          >
-            My Communities
-          </button>
-        </div>
-
-        <input
-          className="cm-search"
-          type="text"
-          placeholder="Search communities..."
-          value={searchTerm}
-          onChange={(e) => handleSearch(e.target.value)}
-        />
-
-        {view === "browse" && (
-          <select className="cm-sort-select" value={sort} onChange={handleSortChange}>
-            <option value="members">Most Members</option>
-            <option value="active">Most Active</option>
-            <option value="newest">Newest</option>
-          </select>
-        )}
-      </div>
-
-      {/* Grid */}
-      <div className="cm-grid">
-        {loading && displayed.length === 0 && (
-          <div className="cm-loading">
-            <div className="cm-spinner" />
-            <span>Loading communities...</span>
-          </div>
-        )}
-
-        {!loading && displayed.length === 0 && (
-          <div className="cm-empty">
-            <div className="cm-empty-divider" />
-            <h3>{view === "mine" ? "No communities yet" : "Build the first focused group"}</h3>
-            <p>
-              {view === "mine"
-                ? "Join or create a community to get started."
-                : "Start a community and bring people together."}
-            </p>
-            <button className="cm-empty-cta" onClick={() => setShowCreate(true)}>
+    <DashboardLayout pageTitle="COMMUNITIES">
+      <div className="cm-page">
+        <div className="cm-main">
+          {/* Header */}
+          <div className="cm-header">
+            <div className="cm-header-left">
+              <h1 className="cm-title">Communities</h1>
+              <p className="cm-subtitle">Focused groups building together</p>
+            </div>
+            <button className="cm-create-btn" onClick={() => setShowCreate(true)}>
               Create community
             </button>
           </div>
-        )}
 
-        {displayed.map((c) => (
-          <CommunityCard
-            key={c.id}
-            community={c}
-            isMember={myIds.has(c.id)}
-            previews={recentPosts[c.id]}
-            onJoin={joinCommunity}
-            onLeave={leaveCommunity}
-            onClick={handleCardClick}
-          />
-        ))}
+          {/* Controls */}
+          <div className="cm-controls">
+            <div className="cm-view-tabs">
+              <button
+                className={`cm-vtab ${view === "browse" ? "active" : ""}`}
+                onClick={() => setView("browse")}
+              >
+                Browse
+              </button>
+              <button
+                className={`cm-vtab ${view === "mine" ? "active" : ""}`}
+                onClick={() => setView("mine")}
+              >
+                My Communities
+              </button>
+            </div>
 
-        {/* Infinite scroll sentinel */}
-        {view === "browse" && hasMore && <div ref={sentinelRef} className="cm-load-more" />}
+            <input
+              className="cm-search"
+              type="text"
+              placeholder="Search communities..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+
+            {view === "browse" && (
+              <select className="cm-sort-select" value={sort} onChange={handleSortChange}>
+                <option value="members">Most Members</option>
+                <option value="active">Most Active</option>
+                <option value="newest">Newest</option>
+              </select>
+            )}
+          </div>
+
+          {/* Grid */}
+          <div className="cm-grid">
+            {loading && displayed.length === 0 && (
+              <div className="cm-loading">
+                <div className="cm-spinner" />
+                <span>Loading communities...</span>
+              </div>
+            )}
+
+            {!loading && displayed.length === 0 && (
+              <div className="cm-empty">
+                <div className="cm-empty-divider" />
+                <h3>{view === "mine" ? "No communities yet" : "Build the first focused group"}</h3>
+                <p>
+                  {view === "mine"
+                    ? "Join or create a community to get started."
+                    : "Start a community and bring people together."}
+                </p>
+                <button className="cm-empty-cta" onClick={() => setShowCreate(true)}>
+                  Create community
+                </button>
+              </div>
+            )}
+
+            {displayed.map((c) => (
+              <CommunityCard
+                key={c.id}
+                community={c}
+                isMember={myIds.has(c.id)}
+                previews={recentPosts[c.id]}
+                onJoin={joinCommunity}
+                onLeave={leaveCommunity}
+                onClick={handleCardClick}
+              />
+            ))}
+
+            {/* Infinite scroll sentinel */}
+            {view === "browse" && hasMore && <div ref={sentinelRef} className="cm-load-more" />}
+          </div>
+        </div>
+
+        <CommunitiesRightPanel trendingCommunities={trendingCommunities} leaderboard={leaderboard} />
       </div>
 
       {/* Create modal */}
@@ -404,6 +453,6 @@ export default function Communities() {
           onCreate={createCommunity}
         />
       )}
-    </div>
+    </DashboardLayout>
   );
 }
