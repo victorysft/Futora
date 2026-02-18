@@ -423,7 +423,7 @@ export function useFeedEngine(userId) {
           user_id: userId,
           content: postContent,
           visibility,
-          type: "post",
+          type: "post",     // ensure 'post' is in your DB posts_type_check constraint
           discipline_tag: disciplineTag,
         })
         .select("*")

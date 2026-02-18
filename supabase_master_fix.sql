@@ -26,6 +26,17 @@ CREATE TABLE IF NOT EXISTS posts (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Drop old check constraints that may conflict with new allowed values
+ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_type_check;
+ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_visibility_check;
+ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_content_check;
+
+-- Re-add permissive constraints
+ALTER TABLE posts ADD CONSTRAINT posts_type_check
+  CHECK (type IN ('post', 'focus', 'achievement', 'checkin', 'milestone', 'question', 'update'));
+ALTER TABLE posts ADD CONSTRAINT posts_visibility_check
+  CHECK (visibility IN ('public', 'followers', 'private'));
+
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS visibility TEXT NOT NULL DEFAULT 'public';
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS like_count INT NOT NULL DEFAULT 0;
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS comment_count INT NOT NULL DEFAULT 0;
