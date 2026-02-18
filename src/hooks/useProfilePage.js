@@ -50,22 +50,22 @@ function computeVerification(profile, totalFocusHours, longestStreak) {
 
 /* ── Achievement definitions ── */
 const ACHIEVEMENT_DEFS = [
-  { id: "first_checkin",     label: "First Check-In",        icon: "✓", test: (s) => s.totalCheckins >= 1 },
-  { id: "streak_3",          label: "3-Day Streak",          icon: "🔥", test: (s) => s.longestStreak >= 3 },
-  { id: "streak_7",          label: "Weekly Warrior",        icon: "⚡", test: (s) => s.longestStreak >= 7 },
-  { id: "streak_14",         label: "Two-Week Titan",        icon: "💎", test: (s) => s.longestStreak >= 14 },
-  { id: "streak_30",         label: "Iron Discipline",       icon: "🛡️", test: (s) => s.longestStreak >= 30 },
-  { id: "streak_100",        label: "Century Streak",        icon: "👑", test: (s) => s.longestStreak >= 100 },
-  { id: "xp_500",            label: "XP Apprentice",         icon: "⭐", test: (s) => s.totalXP >= 500 },
-  { id: "xp_2500",           label: "XP Architect",          icon: "🌟", test: (s) => s.totalXP >= 2500 },
-  { id: "xp_10000",          label: "XP Sovereign",          icon: "💫", test: (s) => s.totalXP >= 10000 },
-  { id: "focus_10h",         label: "10 Hours Focused",      icon: "🎯", test: (s) => s.totalHours >= 10 },
-  { id: "focus_50h",         label: "50 Hours Focused",      icon: "🔷", test: (s) => s.totalHours >= 50 },
-  { id: "focus_100h",        label: "Centurion",             icon: "🏆", test: (s) => s.totalHours >= 100 },
-  { id: "level_5",           label: "Level 5 Reached",       icon: "📈", test: (s) => s.level >= 5 },
-  { id: "level_10",          label: "Double Digits",         icon: "🚀", test: (s) => s.level >= 10 },
-  { id: "checkins_50",       label: "50 Check-Ins",          icon: "📋", test: (s) => s.totalCheckins >= 50 },
-  { id: "checkins_100",      label: "Century Builder",       icon: "🏛️", test: (s) => s.totalCheckins >= 100 },
+  { id: "first_checkin",     label: "First Check-In",        icon: "check",       test: (s) => s.totalCheckins >= 1 },
+  { id: "streak_3",          label: "3-Day Streak",          icon: "flame",       test: (s) => s.longestStreak >= 3 },
+  { id: "streak_7",          label: "Weekly Warrior",        icon: "zap",         test: (s) => s.longestStreak >= 7 },
+  { id: "streak_14",         label: "Two-Week Titan",        icon: "diamond",     test: (s) => s.longestStreak >= 14 },
+  { id: "streak_30",         label: "Iron Discipline",       icon: "shield",      test: (s) => s.longestStreak >= 30 },
+  { id: "streak_100",        label: "Century Streak",        icon: "crown",       test: (s) => s.longestStreak >= 100 },
+  { id: "xp_500",            label: "XP Apprentice",         icon: "star",        test: (s) => s.totalXP >= 500 },
+  { id: "xp_2500",           label: "XP Architect",          icon: "star",        test: (s) => s.totalXP >= 2500 },
+  { id: "xp_10000",          label: "XP Sovereign",          icon: "star",        test: (s) => s.totalXP >= 10000 },
+  { id: "focus_10h",         label: "10 Hours Focused",      icon: "target",      test: (s) => s.totalHours >= 10 },
+  { id: "focus_50h",         label: "50 Hours Focused",      icon: "target",      test: (s) => s.totalHours >= 50 },
+  { id: "focus_100h",        label: "Centurion",             icon: "award",       test: (s) => s.totalHours >= 100 },
+  { id: "level_5",           label: "Level 5 Reached",       icon: "trending-up", test: (s) => s.level >= 5 },
+  { id: "level_10",          label: "Double Digits",         icon: "trending-up", test: (s) => s.level >= 10 },
+  { id: "checkins_50",       label: "50 Check-Ins",          icon: "clipboard",   test: (s) => s.totalCheckins >= 50 },
+  { id: "checkins_100",      label: "Century Builder",       icon: "building",    test: (s) => s.totalCheckins >= 100 },
 ];
 
 export function useProfilePage(userId) {

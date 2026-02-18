@@ -20,8 +20,8 @@ const stagger = {
 };
 
 const CATEGORY_ICONS = {
-  tech: "⚡", fitness: "🏋️", creative: "🎨", study: "📚",
-  business: "💼", mindset: "🧠", health: "❤️", default: "🌐",
+  tech: "T", fitness: "F", creative: "C", study: "S",
+  business: "B", mindset: "M", health: "H", default: "G",
 };
 
 function getCatIcon(cat) {
@@ -165,7 +165,7 @@ function CommunityCard({ community, isMember, onJoin, onLeave, onOpen }) {
           {community.category && <span className="cm-card-cat">{community.category}</span>}
         </div>
         {isMember ? (
-          <button className="cm-btn-joined" onClick={onLeave}>Joined ✓</button>
+          <button className="cm-btn-joined" onClick={onLeave}>Joined</button>
         ) : (
           <button className="cm-btn-join" onClick={onJoin}>Join</button>
         )}
@@ -258,7 +258,7 @@ export default function Communities() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="cm-empty">
-              <span className="cm-empty-icon">🏛</span>
+              <span className="cm-empty-icon">--</span>
               <h3>{view === "mine" ? "No communities yet" : "Nothing found"}</h3>
               <p>{view === "mine" ? "Create or join one to get started" : "Try a different search"}</p>
             </div>

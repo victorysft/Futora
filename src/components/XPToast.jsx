@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 /**
  * XPToast — Floating micro-notification after check-in.
  *
- * Shows: "+20 XP · Streak 5 🔥" or rank change "You passed Alex (#14)"
+ * Shows: "+20 XP · Streak 5" or rank change "You passed Alex (#14)"
  * Auto-dismisses after 4 seconds.
  *
  * Props:
@@ -38,7 +38,8 @@ export default function XPToast({ show, xpGained = 0, streak = 0, rankChange = n
             <span style={styles.xpBadge}>+{xpGained} XP</span>
             {streak > 0 && (
               <span style={styles.streakBadge}>
-                Streak {streak} 🔥
+                Streak {streak}
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginLeft: 3, verticalAlign: "middle"}}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
               </span>
             )}
           </div>
@@ -51,7 +52,7 @@ export default function XPToast({ show, xpGained = 0, streak = 0, rankChange = n
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              ⬆ Level {levelUp.from} → Level {levelUp.to}
+              Level {levelUp.from} → Level {levelUp.to}
             </motion.div>
           )}
 

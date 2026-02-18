@@ -21,9 +21,9 @@ const stagger = {
 };
 
 const POST_TYPE_MAP = {
-  progress: { label: "Progress", color: "#10B981", icon: "📈" },
-  reflection: { label: "Reflection", color: "#8B5CF6", icon: "💭" },
-  mission: { label: "Mission", color: "#3B82F6", icon: "🎯" },
+  progress: { label: "Progress", color: "#10B981", icon: "P" },
+  reflection: { label: "Reflection", color: "#8B5CF6", icon: "R" },
+  mission: { label: "Mission", color: "#3B82F6", icon: "M" },
 };
 
 function timeAgo(dateStr) {
@@ -70,8 +70,8 @@ function CommunityHeader({ community, myRole, memberCount, onBack }) {
             <p className="cd-description">{community.description}</p>
           )}
           <div className="cd-hero-stats">
-            <span className="cd-stat">👥 {memberCount} members</span>
-            {community.category && <span className="cd-stat">📁 {community.category}</span>}
+            <span className="cd-stat">{memberCount} members</span>
+            {community.category && <span className="cd-stat">{community.category}</span>}
             {myRole && (
               <span
                 className="cd-role-tag"
@@ -83,7 +83,7 @@ function CommunityHeader({ community, myRole, memberCount, onBack }) {
                 {ROLE_BADGE[myRole]?.label || myRole}
               </span>
             )}
-            {community.is_private && <span className="cd-private-tag">🔒 Private</span>}
+            {community.is_private && <span className="cd-private-tag">Private</span>}
           </div>
         </div>
       </div>
@@ -203,7 +203,7 @@ function MemberCard({ member, myRole, userId, onRoleChange, onBan }) {
       <div className="cd-member-info">
         <div className="cd-member-name-row">
           <span className="cd-member-name">{profile.identity || "User"}</span>
-          {profile.verified && <span className="cd-member-verified">✓</span>}
+          {profile.verified && <span className="cd-member-verified">V</span>}
           {roleInfo.label && (
             <span className="cd-member-role" style={{ color: roleInfo.color }}>
               {roleInfo.label}
@@ -226,7 +226,7 @@ function MemberCard({ member, myRole, userId, onRoleChange, onBan }) {
             {myRole === "owner" && <option value="admin">Admin</option>}
           </select>
           <button className="cd-ban-btn" onClick={() => onBan(member.user_id)} title="Ban user">
-            🚫
+            Ban
           </button>
         </div>
       )}
@@ -312,7 +312,7 @@ export default function CommunityDetail() {
       <DashboardLayout>
         <div className="cm-page">
           <div className="cm-empty">
-            <span className="cm-empty-icon">🔍</span>
+            <span className="cm-empty-icon">--</span>
             <h3>Community not found</h3>
             <button className="cm-btn-join" onClick={() => navigate("/communities")}>
               Browse Communities
@@ -380,7 +380,7 @@ export default function CommunityDetail() {
                 <div className="cd-posts-list">
                   {posts.length === 0 ? (
                     <div className="cm-empty compact">
-                      <span className="cm-empty-icon">💬</span>
+                      <span className="cm-empty-icon">--</span>
                       <h3>No posts yet</h3>
                       <p>Be the first to post in this community</p>
                     </div>
@@ -490,7 +490,7 @@ export default function CommunityDetail() {
                           <div className="cd-member-info">
                             <span className="cd-member-name">
                               {profile.identity || "User"}
-                              {profile.verified && <span className="cd-member-verified"> ✓</span>}
+                              {profile.verified && <span className="cd-member-verified"> V</span>}
                             </span>
                           </div>
                         </div>
@@ -527,7 +527,7 @@ export default function CommunityDetail() {
                                   onClick={() => banUser(m.user_id, "Banned by moderator")}
                                   title="Ban user"
                                 >
-                                  🚫
+                                  Ban
                                 </button>
                               </>
                             ) : (

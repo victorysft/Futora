@@ -154,7 +154,7 @@ function FocusSetup({ profile, onCreate, saving, canCreateFocus, cooldownRemaini
 
         {error && (
           <div className="focus-error">
-            <span>⚠</span>
+            <span>!</span>
             <span>{error}</span>
           </div>
         )}
@@ -174,7 +174,7 @@ function BreakCommitmentModal({ focus, onConfirm, onClose, saving }) {
   return (
     <div className="focus-edit-overlay" onClick={onClose}>
       <div className="focus-break-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="focus-break-icon">⚠</div>
+        <div className="focus-break-icon">!</div>
         <h3>Break Your Commitment?</h3>
         <p className="focus-break-text">
           You committed to <strong>"{focus.title}"</strong>. Archiving starts a

@@ -432,8 +432,8 @@ export default function Dashboard() {
             }}
           >
             {streakReminder.missedYesterday
-              ? "⚠ You missed yesterday. Check in now to start a new streak!"
-              : "⏰ Your streak is at risk — check in before midnight!"}
+              ? "You missed yesterday. Check in now to start a new streak."
+              : "Your streak is at risk — check in before midnight."}
           </motion.div>
         )}
 
@@ -454,7 +454,7 @@ export default function Dashboard() {
               textAlign: "center",
             }}
           >
-            🎉 {streakReminder.streakMilestone}-day streak milestone! You're unstoppable.
+            {streakReminder.streakMilestone}-day streak milestone. You're unstoppable.
           </motion.div>
         )}
 
