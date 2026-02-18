@@ -26,6 +26,18 @@ CREATE TABLE IF NOT EXISTS posts (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Backfill columns on existing posts table (IF NOT EXISTS per column)
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS visibility TEXT NOT NULL DEFAULT 'public';
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS like_count INT NOT NULL DEFAULT 0;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS comment_count INT NOT NULL DEFAULT 0;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS view_count INT NOT NULL DEFAULT 0;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS repost_count INT NOT NULL DEFAULT 0;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS score FLOAT NOT NULL DEFAULT 0;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'post';
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS discipline_tag TEXT;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
 CREATE TABLE IF NOT EXISTS post_media (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
@@ -38,6 +50,13 @@ CREATE TABLE IF NOT EXISTS post_media (
   order_index INT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Backfill columns on existing post_media table
+ALTER TABLE post_media ADD COLUMN IF NOT EXISTS thumbnail TEXT;
+ALTER TABLE post_media ADD COLUMN IF NOT EXISTS width INT;
+ALTER TABLE post_media ADD COLUMN IF NOT EXISTS height INT;
+ALTER TABLE post_media ADD COLUMN IF NOT EXISTS duration_ms INT;
+ALTER TABLE post_media ADD COLUMN IF NOT EXISTS order_index INT NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS likes (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -57,6 +76,11 @@ CREATE TABLE IF NOT EXISTS comments (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Backfill columns on existing comments table
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_comment_id UUID;
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS like_count INT NOT NULL DEFAULT 0;
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS depth INT NOT NULL DEFAULT 0;
+
 CREATE TABLE IF NOT EXISTS follows (
   follower_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   following_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -65,6 +89,9 @@ CREATE TABLE IF NOT EXISTS follows (
   PRIMARY KEY (follower_id, following_id),
   CHECK (follower_id != following_id)
 );
+
+-- Backfill columns on existing follows table
+ALTER TABLE follows ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'accepted';
 
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -76,6 +103,12 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Backfill columns on existing notifications table
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS actor_id UUID;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS reference_id UUID;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS post_id UUID;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS post_views (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -120,6 +153,17 @@ CREATE TABLE IF NOT EXISTS communities (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Backfill columns on existing communities table
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS rules TEXT;
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS banner_url TEXT;
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS icon_url TEXT;
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT FALSE;
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS members_count INT NOT NULL DEFAULT 0;
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS posts_count INT NOT NULL DEFAULT 0;
+
 CREATE TABLE IF NOT EXISTS community_members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   community_id UUID NOT NULL REFERENCES communities(id) ON DELETE CASCADE,
@@ -130,6 +174,12 @@ CREATE TABLE IF NOT EXISTS community_members (
   joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (community_id, user_id)
 );
+
+-- Backfill columns on existing community_members table
+ALTER TABLE community_members ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'member';
+ALTER TABLE community_members ADD COLUMN IF NOT EXISTS xp INT NOT NULL DEFAULT 0;
+ALTER TABLE community_members ADD COLUMN IF NOT EXISTS level INT NOT NULL DEFAULT 0;
+ALTER TABLE community_members ADD COLUMN IF NOT EXISTS joined_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
 CREATE TABLE IF NOT EXISTS community_posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
