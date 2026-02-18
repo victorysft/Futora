@@ -560,6 +560,15 @@ ON CONFLICT (id) DO NOTHING;
 -- └─────────────────────────────────────────┘
 
 -- Enable realtime on key tables (safe to run multiple times)
-ALTER PUBLICATION supabase_realtime ADD TABLE posts;
-ALTER PUBLICATION supabase_realtime ADD TABLE community_posts;
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE posts;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE community_posts;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
