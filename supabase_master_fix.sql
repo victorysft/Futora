@@ -31,6 +31,12 @@ ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_type_check;
 ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_visibility_check;
 ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_content_check;
 
+-- Normalize any existing rows with invalid type/visibility values before re-adding constraints
+UPDATE posts SET type = 'post'
+  WHERE type IS NULL OR type NOT IN ('post', 'focus', 'achievement', 'checkin', 'milestone', 'question', 'update');
+UPDATE posts SET visibility = 'public'
+  WHERE visibility IS NULL OR visibility NOT IN ('public', 'followers', 'private');
+
 -- Re-add permissive constraints
 ALTER TABLE posts ADD CONSTRAINT posts_type_check
   CHECK (type IN ('post', 'focus', 'achievement', 'checkin', 'milestone', 'question', 'update'));
