@@ -1,231 +1,189 @@
-import { useState, useEffect, useCallback } from "react";
+/**
+ * FUTORA — Community Detail 2.0
+ *
+ * Two-column layout inside DashboardLayout:
+ *   Left/center: Community content (banner, tabs, feed/members/about/rules/leaderboard)
+ *   Right: Insights panel (sticky)
+ *
+ * Features:
+ *  - Banner + hero header with join/leave
+ *  - Tabs: Feed, Members, About, Rules, Leaderboard
+ *  - Feed with compose box, sort (New/Top/Trending), likes, comments
+ *  - Members with role badges, sort, moderation controls
+ *  - About: description, details, tags
+ *  - Rules: community guidelines
+ *  - Leaderboard: top 10 by XP
+ *  - Insights panel: members, posts today, top contributor, join CTA
+ *  - Realtime post + member updates
+ */
+
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import DashboardLayout from "../components/DashboardLayout";
+import { supabase } from "../supabaseClient";
 import { useAuth } from "../hooks/useAuth";
 import { useCommunityDetail, getCommunityLevel } from "../hooks/useCommunities";
-import { supabase } from "../supabaseClient";
-import "./Communities.css";
+import "./CommunityDetail.css";
 
-/* ═══════════════════════════════════════════
-   FUTORA · Community Detail — Group Arena
-   ═══════════════════════════════════════════ */
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
-};
-const stagger = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.05 } },
-};
-
-const POST_TYPE_MAP = {
-  progress: { label: "Progress", color: "#10B981", icon: "P" },
-  reflection: { label: "Reflection", color: "#8B5CF6", icon: "R" },
-  mission: { label: "Mission", color: "#3B82F6", icon: "M" },
-};
-
-function timeAgo(dateStr) {
-  const s = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (s < 60) return "Just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
-  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+/* ── Helpers ── */
+function timeAgo(date) {
+  const now = Date.now();
+  const diff = now - new Date(date).getTime();
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h`;
+  const days = Math.floor(hr / 24);
+  if (days < 30) return `${days}d`;
+  const months = Math.floor(days / 30);
+  return `${months}mo`;
 }
 
-const ROLE_BADGE = {
-  owner: { label: "Owner", color: "#EAB308" },
-  admin: { label: "Admin", color: "#EF4444" },
-  moderator: { label: "Mod", color: "#3B82F6" },
-  member: { label: "", color: "" },
+const ROLE_STYLES = {
+  owner: { background: "rgba(234,179,8,0.12)", color: "#EAB308", borderColor: "rgba(234,179,8,0.2)" },
+  admin: { background: "rgba(239,68,68,0.1)", color: "#EF4444", borderColor: "rgba(239,68,68,0.2)" },
+  moderator: { background: "rgba(59,130,246,0.1)", color: "#3B82F6", borderColor: "rgba(59,130,246,0.2)" },
+  member: { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.4)", borderColor: "rgba(255,255,255,0.06)" },
 };
 
-/* ══════════════════════════════════════════════
-   COMMUNITY HEADER — Full-width Banner
-   ══════════════════════════════════════════════ */
-function CommunityHeader({ community, myRole, memberCount, onBack }) {
-  return (
-    <motion.div className="cd-hero" variants={fadeUp}>
-      {/* Full-width banner */}
-      <div
-        className="cd-banner"
-        style={community.banner_url ? { backgroundImage: `url(${community.banner_url})` } : {}}
-      >
-        <button className="cd-back-btn" onClick={onBack}>← Back</button>
-      </div>
+const TABS = ["Feed", "Members", "About", "Rules", "Leaderboard"];
+const FEED_SORTS = ["new", "top", "trending"];
 
-      <div className="cd-hero-body">
-        <div className="cd-hero-avatar">
-          {community.avatar_url ? (
-            <img src={community.avatar_url} alt="" className="cd-hero-avatar-img" />
-          ) : (
-            <span>{(community.name || "C")[0].toUpperCase()}</span>
-          )}
-        </div>
-        <div className="cd-hero-info">
-          <h1 className="cd-name">{community.name}</h1>
-          {community.description && (
-            <p className="cd-description">{community.description}</p>
-          )}
-          <div className="cd-hero-stats">
-            <span className="cd-stat">{memberCount} members</span>
-            {community.category && <span className="cd-stat">{community.category}</span>}
-            {myRole && (
-              <span
-                className="cd-role-tag"
-                style={{
-                  background: (ROLE_BADGE[myRole]?.color || "#8B5CF6") + "20",
-                  color: ROLE_BADGE[myRole]?.color || "#8B5CF6",
-                }}
-              >
-                {ROLE_BADGE[myRole]?.label || myRole}
-              </span>
-            )}
-            {community.is_private && <span className="cd-private-tag">Private</span>}
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+/* ═══════════════════════════════════════════════════
+   PostCard — Feed post with likes, comments
+   ═══════════════════════════════════════════════════ */
+function PostCard({ post, liked, myRole, userId, onLike, onDelete, onReport, onToggleComments, showComments, comments, onAddComment, onFetchComments }) {
+  const profile = post.profiles || {};
+  const initial = (profile.identity || "U")[0].toUpperCase();
+  const canModerate = myRole === "owner" || myRole === "admin" || myRole === "moderator";
+  const isOwn = post.user_id === userId;
+  const [commentText, setCommentText] = useState("");
 
-/* ══════════════════════════════════════════════
-   COMPOSE (community)
-   ══════════════════════════════════════════════ */
-function CommunityCompose({ onPost }) {
-  const [type, setType] = useState("reflection");
-  const [content, setContent] = useState("");
-  const [posting, setPosting] = useState(false);
+  const handleToggle = () => {
+    if (!showComments) onFetchComments(post.id);
+    onToggleComments(post.id);
+  };
 
-  const handlePost = async () => {
-    if (!content.trim() || posting) return;
-    setPosting(true);
-    await onPost(type, content);
-    setContent("");
-    setPosting(false);
+  const handleComment = () => {
+    if (!commentText.trim()) return;
+    onAddComment(post.id, commentText);
+    setCommentText("");
   };
 
   return (
-    <motion.div className="cd-compose" variants={fadeUp}>
-      <div className="fd-compose-types">
-        {Object.entries(POST_TYPE_MAP).map(([key, cfg]) => (
-          <button
-            key={key}
-            className={`fd-type-btn${type === key ? " active" : ""}`}
-            onClick={() => setType(key)}
-            style={{ "--type-color": cfg.color }}
-          >
-            <span>{cfg.icon}</span> {cfg.label}
-          </button>
-        ))}
-      </div>
-      <textarea
-        className="fd-compose-input"
-        placeholder="Post in this community…"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        maxLength={600}
-        rows={2}
-      />
-      <div className="fd-compose-footer">
-        <span className="fd-char-count">{content.length}/600</span>
-        <button
-          className="fd-post-btn"
-          onClick={handlePost}
-          disabled={!content.trim() || posting}
-        >
-          {posting ? "Posting…" : "Post"}
-        </button>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ══════════════════════════════════════════════
-   COMMUNITY POST CARD
-   ══════════════════════════════════════════════ */
-function CommunityPostCard({ post, myRole, userId, onDelete }) {
-  const author = post.profiles || {};
-  const typeCfg = POST_TYPE_MAP[post.type] || POST_TYPE_MAP.reflection;
-  const canDelete = post.user_id === userId || ["owner", "admin", "moderator"].includes(myRole);
-
-  return (
-    <motion.div className="cd-post" variants={fadeUp}>
-      <div className="fd-post-header">
-        <div className="fd-post-avatar">
-          {(author.identity || "?")[0].toUpperCase()}
+    <div className="cd-post">
+      <div className="cd-post-header">
+        <div className="cd-post-avatar">
+          {profile.avatar_url ? <img src={profile.avatar_url} alt="" /> : initial}
         </div>
-        <div className="fd-post-meta">
-          <div className="fd-post-author-row">
-            <span className="fd-post-author">{author.identity || "User"}</span>
-            {author.verified && (
-              <svg className="fd-verified" width="14" height="14" viewBox="0 0 16 16" fill="none">
-                <path d="M8 0L9.8 2.4L12.8 2L12.4 5L15 6.8L13.2 9.2L14 12L11.2 12.4L9.8 15L8 13L6.2 15L4.8 12.4L2 12L2.8 9.2L1 6.8L3.6 5L3.2 2L6.2 2.4L8 0Z" fill="#3B82F6" />
-                <path d="M6.5 8.5L7.5 9.5L10 6.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-            <span className="fd-post-level">Lv.{author.level || 0}</span>
-          </div>
-          <div className="fd-post-time-row">
-            <span className="fd-post-type-tag" style={{ background: typeCfg.color + "18", color: typeCfg.color }}>
-              {typeCfg.icon} {typeCfg.label}
-            </span>
-            <span className="fd-post-time">{timeAgo(post.created_at)}</span>
-          </div>
+        <div className="cd-post-meta">
+          <span className="cd-post-author">
+            {profile.identity || "User"}
+            <span className="cd-post-level">Lv.{profile.level || 1}</span>
+          </span>
+          <span className="cd-post-time">{timeAgo(post.created_at)}</span>
         </div>
-        {canDelete && (
-          <button className="cd-delete-btn" onClick={() => onDelete(post.id)} title="Delete post">✕</button>
-        )}
-      </div>
-      <p className="fd-post-content">{post.content}</p>
-    </motion.div>
-  );
-}
-
-/* ══════════════════════════════════════════════
-   MEMBER CARD
-   ══════════════════════════════════════════════ */
-function MemberCard({ member, myRole, userId, onRoleChange, onBan }) {
-  const profile = member.profiles || {};
-  const roleInfo = ROLE_BADGE[member.role] || ROLE_BADGE.member;
-  const canManage =
-    (myRole === "owner" || myRole === "admin") &&
-    member.user_id !== userId &&
-    member.role !== "owner";
-
-  return (
-    <div className="cd-member">
-      <div className="cd-member-avatar">
-        {(profile.identity || "?")[0].toUpperCase()}
-      </div>
-      <div className="cd-member-info">
-        <div className="cd-member-name-row">
-          <span className="cd-member-name">{profile.identity || "User"}</span>
-          {profile.verified && <span className="cd-member-verified">V</span>}
-          {roleInfo.label && (
-            <span className="cd-member-role" style={{ color: roleInfo.color }}>
-              {roleInfo.label}
-            </span>
+        <div className="cd-post-actions-top">
+          {!isOwn && (
+            <button className="cd-post-action-btn" onClick={() => onReport(post.id)} title="Report">
+              Report
+            </button>
+          )}
+          {(isOwn || canModerate) && (
+            <button className="cd-post-action-btn danger" onClick={() => onDelete(post.id)} title="Delete">
+              Delete
+            </button>
           )}
         </div>
-        <span className="cd-member-xp">
-          {member.xp || 0} XP · {getCommunityLevel(member.xp || 0)}
-        </span>
       </div>
+
+      <p className="cd-post-content">{post.content}</p>
+
+      <div className="cd-post-bar">
+        <button
+          className={`cd-bar-btn ${liked ? "liked" : ""}`}
+          onClick={() => onLike(post.id)}
+        >
+          <span className="cd-bar-icon">{liked ? "\u2764" : "\u2661"}</span>
+          {post.like_count || 0}
+        </button>
+        <button className="cd-bar-btn" onClick={handleToggle}>
+          <span className="cd-bar-icon">{"\u2709"}</span>
+          {post.comment_count || 0}
+        </button>
+      </div>
+
+      {/* Comments */}
+      {showComments && (
+        <div className="cd-comments">
+          {(comments || []).map((c) => {
+            const cp = c.profiles || {};
+            return (
+              <div key={c.id} className="cd-comment">
+                <div className="cd-comment-avatar">
+                  {(cp.identity || "U")[0].toUpperCase()}
+                </div>
+                <div className="cd-comment-body">
+                  <span className="cd-comment-author">{cp.identity || "User"}</span>
+                  <p className="cd-comment-text">{c.content}</p>
+                  <span className="cd-comment-time">{timeAgo(c.created_at)}</span>
+                </div>
+              </div>
+            );
+          })}
+          <div className="cd-comment-input-row">
+            <input
+              className="cd-comment-input"
+              placeholder="Write a comment..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value.slice(0, 1000))}
+              onKeyDown={(e) => e.key === "Enter" && handleComment()}
+            />
+            <button className="cd-comment-submit" onClick={handleComment}>Send</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   MemberRow
+   ═══════════════════════════════════════════════════ */
+function MemberRow({ member, myRole, userId, onUpdateRole, onBan }) {
+  const profile = member.profiles || {};
+  const initial = (profile.identity || "U")[0].toUpperCase();
+  const style = ROLE_STYLES[member.role] || ROLE_STYLES.member;
+  const canManage = (myRole === "owner" || myRole === "admin") && member.user_id !== userId;
+  const level = getCommunityLevel(member.xp || 0);
+
+  return (
+    <div className="cd-member-row">
+      <div className="cd-member-avatar">
+        {profile.avatar_url ? <img src={profile.avatar_url} alt="" /> : initial}
+      </div>
+      <div className="cd-member-info">
+        <span className="cd-member-name">{profile.identity || "User"}</span>
+        <div className="cd-member-sub">
+          <span>{level}</span>
+          <span>Streak {profile.streak || 0}</span>
+        </div>
+      </div>
+      <span className="cd-member-role-badge" style={style}>{member.role}</span>
+      <span className="cd-member-xp-val">{member.xp || 0} XP</span>
       {canManage && (
         <div className="cd-member-actions">
           <select
             className="cd-role-select"
             value={member.role}
-            onChange={(e) => onRoleChange(member.user_id, e.target.value)}
+            onChange={(e) => onUpdateRole(member.user_id, e.target.value)}
           >
             <option value="member">Member</option>
             <option value="moderator">Moderator</option>
             {myRole === "owner" && <option value="admin">Admin</option>}
           </select>
-          <button className="cd-ban-btn" onClick={() => onBan(member.user_id)} title="Ban user">
+          <button className="cd-ban-btn" onClick={() => onBan(member.user_id, "Banned by moderator")}>
             Ban
           </button>
         </div>
@@ -234,50 +192,85 @@ function MemberCard({ member, myRole, userId, onRoleChange, onBan }) {
   );
 }
 
-/* ══════════════════════════════════════════════
-   RULES PANEL
-   ══════════════════════════════════════════════ */
-function RulesPanel({ rules }) {
-  if (!rules) return null;
+/* ═══════════════════════════════════════════════════
+   InsightsPanel (right column)
+   ═══════════════════════════════════════════════════ */
+function InsightsPanel({ community, members, insights, myRole, onJoin }) {
   return (
-    <motion.div className="cd-rules" variants={fadeUp}>
-      <h3 className="cd-section-title">Community Rules</h3>
-      <p className="cd-rules-text">{rules}</p>
-    </motion.div>
+    <aside className="cd-insights">
+      {/* Stats */}
+      <div className="cd-insight-card">
+        <div className="cd-insight-title">Community Stats</div>
+        <div className="cd-insight-stat">
+          <span className="cd-insight-label">Members</span>
+          <span className="cd-insight-value">{community?.members_count || members.length}</span>
+        </div>
+        <div className="cd-insight-stat">
+          <span className="cd-insight-label">Total Posts</span>
+          <span className="cd-insight-value">{community?.posts_count || 0}</span>
+        </div>
+        <div className="cd-insight-stat">
+          <span className="cd-insight-label">Posts Today</span>
+          <span className="cd-insight-value purple">{insights.postsToday}</span>
+        </div>
+        <div className="cd-insight-stat">
+          <span className="cd-insight-label">Category</span>
+          <span className="cd-insight-value">{community?.category || "General"}</span>
+        </div>
+      </div>
+
+      {/* Top contributor */}
+      {insights.topContributor && (
+        <div className="cd-insight-card">
+          <div className="cd-insight-title">Top Contributor</div>
+          <div className="cd-insight-stat">
+            <span className="cd-insight-label">{insights.topContributor.name}</span>
+            <span className="cd-insight-value purple">{insights.topContributor.xp} XP</span>
+          </div>
+        </div>
+      )}
+
+      {/* Join CTA */}
+      {!myRole && (
+        <div className="cd-insight-card">
+          <div className="cd-insight-title">Join this community</div>
+          <p style={{ fontFamily: "var(--d-font, 'Inter', sans-serif)", fontSize: 13, color: "rgba(255,255,255,0.4)", margin: "0 0 12px", lineHeight: 1.5 }}>
+            Be part of a focused group building together.
+          </p>
+          <button className="cd-insight-join" onClick={onJoin}>Join Community</button>
+        </div>
+      )}
+    </aside>
   );
 }
 
-/* ══════════════════════════════════════════════════════════
-   COMMUNITY DETAIL PAGE
-   ══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════
+   CommunityDetail — Main Page
+   ═══════════════════════════════════════════════════ */
 export default function CommunityDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const userId = user?.id;
-
-  // Resolve slug → id
   const [communityId, setCommunityId] = useState(null);
   const [resolving, setResolving] = useState(true);
 
+  // Resolve slug → ID
   useEffect(() => {
-    if (!slug) return;
-    (async () => {
+    let cancelled = false;
+    async function resolve() {
       setResolving(true);
-      // Try UUID first
-      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (uuidPattern.test(slug)) {
+      // UUID check
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-/.test(slug)) {
         setCommunityId(slug);
-      } else {
-        const { data } = await supabase
-          .from("communities")
-          .select("id")
-          .eq("slug", slug)
-          .single();
-        setCommunityId(data?.id || null);
+        setResolving(false);
+        return;
       }
-      setResolving(false);
-    })();
+      const { data } = await supabase.from("communities").select("id").eq("slug", slug).single();
+      if (!cancelled && data) setCommunityId(data.id);
+      if (!cancelled) setResolving(false);
+    }
+    resolve();
+    return () => { cancelled = true; };
   }, [slug]);
 
   const {
@@ -285,301 +278,345 @@ export default function CommunityDetail() {
     members,
     posts,
     myRole,
+    myLikes,
+    comments,
     loading,
+    insights,
+    tags,
     createPost,
+    likePost,
+    fetchComments,
+    addComment,
     deletePost,
+    reportPost,
     updateRole,
     banUser,
-  } = useCommunityDetail(communityId, userId);
+    joinCommunity,
+    leaveCommunity,
+    sortPosts,
+  } = useCommunityDetail(communityId, user?.id);
 
-  const [activeTab, setActiveTab] = useState("posts");
+  const [tab, setTab] = useState("Feed");
+  const [feedSort, setFeedSort] = useState("new");
+  const [composeText, setComposeText] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [expandedComments, setExpandedComments] = useState(new Set());
+  const [memberSort, setMemberSort] = useState("xp");
 
-  if (resolving || loading) {
+  // Handle feed sort change
+  const handleFeedSort = useCallback(
+    (s) => {
+      setFeedSort(s);
+      sortPosts(s);
+    },
+    [sortPosts]
+  );
+
+  // Compose submit
+  const handlePost = async () => {
+    if (!composeText.trim() || posting) return;
+    setPosting(true);
+    await createPost(composeText);
+    setComposeText("");
+    setPosting(false);
+  };
+
+  // Comment toggle
+  const toggleComments = useCallback((postId) => {
+    setExpandedComments((prev) => {
+      const next = new Set(prev);
+      if (next.has(postId)) next.delete(postId);
+      else next.add(postId);
+      return next;
+    });
+  }, []);
+
+  // Member sorting
+  const sortedMembers = [...members].sort((a, b) => {
+    if (memberSort === "xp") return (b.xp || 0) - (a.xp || 0);
+    if (memberSort === "newest") return new Date(b.joined_at || b.created_at) - new Date(a.joined_at || a.created_at);
+    if (memberSort === "name") return (a.profiles?.identity || "").localeCompare(b.profiles?.identity || "");
+    return 0;
+  });
+
+  // Loading states
+  if (resolving || (loading && !community)) {
     return (
-      <DashboardLayout>
-        <div className="cm-page">
-          <div className="cm-loading">
-            <div className="cm-spinner" />
-            <span>Loading community…</span>
-          </div>
-        </div>
-      </DashboardLayout>
+      <div className="cd-loading">
+        <div className="cd-spinner" />
+        <span>Loading community...</span>
+      </div>
     );
   }
 
   if (!community) {
     return (
-      <DashboardLayout>
-        <div className="cm-page">
-          <div className="cm-empty">
-            <span className="cm-empty-icon">--</span>
-            <h3>Community not found</h3>
-            <button className="cm-btn-join" onClick={() => navigate("/communities")}>
-              Browse Communities
-            </button>
-          </div>
-        </div>
-      </DashboardLayout>
+      <div className="cd-empty">
+        <h3>Community not found</h3>
+        <p>This community may have been removed or the link is incorrect.</p>
+        <button className="cd-empty-btn" onClick={() => navigate("/communities")}>
+          Back to communities
+        </button>
+      </div>
     );
   }
 
+  const heroInitial = (community.name || "C")[0].toUpperCase();
+  const canPost = !!myRole;
+
   return (
-    <DashboardLayout>
-      <div className="cm-page cd-page">
-        <motion.div variants={stagger} initial="hidden" animate="visible">
-          {/* Hero */}
-          <CommunityHeader
-            community={community}
-            myRole={myRole}
-            memberCount={members.length}
-            onBack={() => navigate("/communities")}
-          />
-
-          {/* Rules */}
-          <RulesPanel rules={community.rules} />
-
-          {/* Tabs */}
-          <div className="cd-tabs">
-            <button
-              className={`cd-tab${activeTab === "posts" ? " active" : ""}`}
-              onClick={() => setActiveTab("posts")}
-            >
-              Posts ({posts.length})
-            </button>
-            <button
-              className={`cd-tab${activeTab === "about" ? " active" : ""}`}
-              onClick={() => setActiveTab("about")}
-            >
-              About
-            </button>
-            <button
-              className={`cd-tab${activeTab === "members" ? " active" : ""}`}
-              onClick={() => setActiveTab("members")}
-            >
-              Members ({members.length})
-            </button>
-            <button
-              className={`cd-tab${activeTab === "leaderboard" ? " active" : ""}`}
-              onClick={() => setActiveTab("leaderboard")}
-            >
-              Leaderboard
+    <div className="cd-layout">
+      {/* ── Left / Center content ── */}
+      <div className="cd-content">
+        {/* Hero */}
+        <div className="cd-hero">
+          <div
+            className="cd-banner"
+            style={community.banner_url ? { backgroundImage: `url(${community.banner_url})` } : undefined}
+          >
+            {community.banner_url && (
+              <img src={community.banner_url} alt="" className="cd-banner-img" loading="lazy" />
+            )}
+            <button className="cd-back-btn" onClick={() => navigate("/communities")}>
+              Back
             </button>
           </div>
 
-          {/* Tab Content */}
-          <AnimatePresence mode="wait">
-            {activeTab === "posts" && (
-              <motion.div
-                key="posts"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {myRole && <CommunityCompose onPost={createPost} />}
+          <div className="cd-hero-body">
+            <div className="cd-hero-avatar">
+              {community.icon_url ? <img src={community.icon_url} alt="" /> : heroInitial}
+            </div>
 
-                <div className="cd-posts-list">
-                  {posts.length === 0 ? (
-                    <div className="cm-empty compact" style={{ textAlign: "center", padding: "40px 20px" }}>
-                      <div style={{ fontSize: 24, marginBottom: 8, opacity: 0.5 }}>+</div>
-                      <h3 style={{ color: "#fff", fontSize: 16, marginBottom: 6 }}>Start the conversation</h3>
-                      <p style={{ color: "var(--d-text-muted)", fontSize: 13 }}>Share an update with this community</p>
-                    </div>
-                  ) : (
-                    posts.map((p) => (
-                      <CommunityPostCard
-                        key={p.id}
-                        post={p}
-                        myRole={myRole}
-                        userId={userId}
-                        onDelete={deletePost}
-                      />
-                    ))
-                  )}
-                </div>
-              </motion.div>
-            )}
-
-            {activeTab === "about" && (
-              <motion.div
-                key="about"
-                className="cd-about"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <div className="cd-about-section">
-                  <h3 className="cd-section-title">Description</h3>
-                  <p className="cd-about-text">{community.description || "No description yet."}</p>
-                </div>
-
-                {community.rules && (
-                  <div className="cd-about-section">
-                    <h3 className="cd-section-title">Community Rules</h3>
-                    <p className="cd-about-text">{community.rules}</p>
-                  </div>
+            <div className="cd-hero-info">
+              <h1 className="cd-name">{community.name}</h1>
+              {community.description && <p className="cd-description">{community.description}</p>}
+              <div className="cd-hero-meta">
+                {community.category && <span className="cd-meta-cat">{community.category}</span>}
+                {community.is_private && <span className="cd-private-tag">Private</span>}
+                <span className="cd-meta-item">{community.members_count || 0} members</span>
+                <span className="cd-meta-item">{community.posts_count || 0} posts</span>
+                {myRole && (
+                  <span className="cd-role-tag" style={ROLE_STYLES[myRole]}>
+                    {myRole}
+                  </span>
                 )}
+              </div>
+            </div>
 
-                <div className="cd-about-section">
-                  <h3 className="cd-section-title">Details</h3>
-                  <div className="cd-about-details">
-                    {community.category && (
-                      <div className="cd-about-detail">
-                        <span className="cd-about-label">Category</span>
-                        <span className="cd-about-value">{community.category}</span>
-                      </div>
-                    )}
-                    <div className="cd-about-detail">
-                      <span className="cd-about-label">Members</span>
-                      <span className="cd-about-value">{members.length}</span>
-                    </div>
-                    <div className="cd-about-detail">
-                      <span className="cd-about-label">Posts</span>
-                      <span className="cd-about-value">{posts.length}</span>
-                    </div>
-                    <div className="cd-about-detail">
-                      <span className="cd-about-label">Visibility</span>
-                      <span className="cd-about-value">{community.is_private ? "Private" : "Public"}</span>
-                    </div>
-                    <div className="cd-about-detail">
-                      <span className="cd-about-label">Created</span>
-                      <span className="cd-about-value">
-                        {new Date(community.created_at).toLocaleDateString("en-US", {
-                          year: "numeric", month: "short", day: "numeric",
-                        })}
-                      </span>
-                    </div>
+            <div className="cd-hero-actions">
+              {myRole ? (
+                <button className="cd-leave-btn" onClick={leaveCommunity}>Leave</button>
+              ) : (
+                <button className="cd-join-btn" onClick={joinCommunity}>Join</button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="cd-tabs">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              className={`cd-tab ${tab === t ? "active" : ""}`}
+              onClick={() => setTab(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* ══ Tab Content ══ */}
+
+        {/* FEED */}
+        {tab === "Feed" && (
+          <>
+            {canPost && (
+              <div className="cd-compose">
+                <textarea
+                  className="cd-compose-input"
+                  rows={3}
+                  placeholder="Share something with the community..."
+                  value={composeText}
+                  onChange={(e) => setComposeText(e.target.value.slice(0, 2000))}
+                />
+                <div className="cd-compose-footer">
+                  <span className="cd-char-count">{composeText.length}/2000</span>
+                  <button
+                    className="cd-post-btn"
+                    onClick={handlePost}
+                    disabled={!composeText.trim() || posting}
+                  >
+                    {posting ? "Posting..." : "Post"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="cd-feed-sort">
+              {FEED_SORTS.map((s) => (
+                <button
+                  key={s}
+                  className={`cd-sort-btn ${feedSort === s ? "active" : ""}`}
+                  onClick={() => handleFeedSort(s)}
+                >
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {posts.length === 0 && !loading && (
+              <div className="cd-empty">
+                <h3>No posts yet</h3>
+                <p>{canPost ? "Be the first to share something." : "Join this community to start posting."}</p>
+              </div>
+            )}
+
+            {posts.map((p) => (
+              <PostCard
+                key={p.id}
+                post={p}
+                liked={myLikes.has(p.id)}
+                myRole={myRole}
+                userId={user?.id}
+                onLike={likePost}
+                onDelete={deletePost}
+                onReport={reportPost}
+                onToggleComments={toggleComments}
+                showComments={expandedComments.has(p.id)}
+                comments={comments[p.id]}
+                onAddComment={addComment}
+                onFetchComments={fetchComments}
+              />
+            ))}
+          </>
+        )}
+
+        {/* MEMBERS */}
+        {tab === "Members" && (
+          <>
+            <div className="cd-members-header">
+              {["xp", "newest", "name"].map((s) => (
+                <button
+                  key={s}
+                  className={`cd-members-sort ${memberSort === s ? "active" : ""}`}
+                  onClick={() => setMemberSort(s)}
+                >
+                  {s === "xp" ? "Top XP" : s === "newest" ? "Newest" : "Name"}
+                </button>
+              ))}
+            </div>
+            {sortedMembers.map((m) => (
+              <MemberRow
+                key={m.user_id}
+                member={m}
+                myRole={myRole}
+                userId={user?.id}
+                onUpdateRole={updateRole}
+                onBan={banUser}
+              />
+            ))}
+            {sortedMembers.length === 0 && (
+              <div className="cd-empty">
+                <h3>No members yet</h3>
+                <p>Be the first to join this community.</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ABOUT */}
+        {tab === "About" && (
+          <div className="cd-about">
+            <div className="cd-about-section">
+              <div className="cd-section-title">Description</div>
+              <p className="cd-about-text">{community.description || "No description provided."}</p>
+            </div>
+
+            <div className="cd-about-section">
+              <div className="cd-section-title">Details</div>
+              <div className="cd-about-details">
+                <div className="cd-about-detail">
+                  <span className="cd-about-label">Category</span>
+                  <span className="cd-about-value">{community.category || "General"}</span>
+                </div>
+                <div className="cd-about-detail">
+                  <span className="cd-about-label">Visibility</span>
+                  <span className="cd-about-value">{community.is_private ? "Private" : "Public"}</span>
+                </div>
+                <div className="cd-about-detail">
+                  <span className="cd-about-label">Created</span>
+                  <span className="cd-about-value">
+                    {new Date(community.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
+                </div>
+                <div className="cd-about-detail">
+                  <span className="cd-about-label">Members</span>
+                  <span className="cd-about-value">{community.members_count || 0}</span>
+                </div>
+              </div>
+            </div>
+
+            {tags.length > 0 && (
+              <div className="cd-about-section">
+                <div className="cd-section-title">Tags</div>
+                <div className="cd-tags">
+                  {tags.map((t) => (
+                    <span key={t} className="cd-tag">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* RULES */}
+        {tab === "Rules" && (
+          <div className="cd-rules-panel">
+            <div className="cd-section-title">Community Rules</div>
+            <p className="cd-rules-text">
+              {community.rules || "No specific rules have been set for this community."}
+            </p>
+          </div>
+        )}
+
+        {/* LEADERBOARD */}
+        {tab === "Leaderboard" && (
+          <div className="cd-leaderboard">
+            {members.slice(0, 10).map((m, i) => {
+              const profile = m.profiles || {};
+              const initial = (profile.identity || "U")[0].toUpperCase();
+              const rankClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
+              return (
+                <div key={m.user_id} className="cd-lb-row">
+                  <span className={`cd-lb-rank ${rankClass}`}>#{i + 1}</span>
+                  <div className="cd-lb-avatar">{initial}</div>
+                  <div className="cd-lb-info">
+                    <span className="cd-lb-name">{profile.identity || "User"}</span>
+                    <span className="cd-lb-level">{getCommunityLevel(m.xp || 0)}</span>
                   </div>
+                  <span className="cd-lb-xp">{m.xp || 0} XP</span>
                 </div>
-              </motion.div>
+              );
+            })}
+            {members.length === 0 && (
+              <div className="cd-empty">
+                <h3>No activity yet</h3>
+                <p>Start contributing to appear on the leaderboard.</p>
+              </div>
             )}
-
-            {activeTab === "members" && (
-              <motion.div
-                key="members"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {/* Members Table Header */}
-                <div className="cd-members-table-header">
-                  <span className="cd-mtcol cd-mtcol-name">Member</span>
-                  <span className="cd-mtcol cd-mtcol-role">Role</span>
-                  <span className="cd-mtcol cd-mtcol-xp">XP</span>
-                  <span className="cd-mtcol cd-mtcol-level">Level</span>
-                  {(myRole === "owner" || myRole === "admin") && (
-                    <span className="cd-mtcol cd-mtcol-actions">Actions</span>
-                  )}
-                </div>
-
-                <div className="cd-members-list">
-                  {members.map((m) => {
-                    const profile = m.profiles || {};
-                    const roleInfo = ROLE_BADGE[m.role] || ROLE_BADGE.member;
-                    const canManage =
-                      (myRole === "owner" || myRole === "admin") &&
-                      m.user_id !== userId &&
-                      m.role !== "owner";
-                    const memberLevel = getCommunityLevel(m.xp || 0);
-
-                    return (
-                      <div key={m.user_id} className="cd-member-row">
-                        <div className="cd-mtcol cd-mtcol-name">
-                          <div className="cd-member-avatar">
-                            {(profile.identity || "?")[0].toUpperCase()}
-                          </div>
-                          <div className="cd-member-info">
-                            <span className="cd-member-name">
-                              {profile.identity || "User"}
-                              {profile.verified && <span className="cd-member-verified"> V</span>}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="cd-mtcol cd-mtcol-role">
-                          {roleInfo.label ? (
-                            <span className="cd-member-role-badge" style={{ color: roleInfo.color, borderColor: roleInfo.color + "40" }}>
-                              {roleInfo.label}
-                            </span>
-                          ) : (
-                            <span className="cd-member-role-badge cd-member-role-default">Member</span>
-                          )}
-                        </div>
-                        <div className="cd-mtcol cd-mtcol-xp">
-                          <span className="cd-member-xp-value">{m.xp || 0}</span>
-                        </div>
-                        <div className="cd-mtcol cd-mtcol-level">
-                          <span className="cd-member-level-tag">{memberLevel}</span>
-                        </div>
-                        {(myRole === "owner" || myRole === "admin") && (
-                          <div className="cd-mtcol cd-mtcol-actions">
-                            {canManage ? (
-                              <>
-                                <select
-                                  className="cd-role-select"
-                                  value={m.role}
-                                  onChange={(e) => updateRole(m.user_id, e.target.value)}
-                                >
-                                  <option value="member">Member</option>
-                                  <option value="moderator">Mod</option>
-                                  {myRole === "owner" && <option value="admin">Admin</option>}
-                                </select>
-                                <button
-                                  className="cd-ban-btn"
-                                  onClick={() => banUser(m.user_id, "Banned by moderator")}
-                                  title="Ban user"
-                                >
-                                  Ban
-                                </button>
-                              </>
-                            ) : (
-                              <span className="cd-no-action">—</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-
-            {activeTab === "leaderboard" && (
-              <motion.div
-                key="leaderboard"
-                className="cd-leaderboard"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {members
-                  .sort((a, b) => (b.xp || 0) - (a.xp || 0))
-                  .map((m, i) => {
-                    const profile = m.profiles || {};
-                    return (
-                      <div key={m.user_id} className="cd-lb-row">
-                        <span className={`cd-lb-rank${i < 3 ? " top" : ""}`}>
-                          {`#${i + 1}`}
-                        </span>
-                        <div className="cd-lb-avatar">
-                          {(profile.identity || "?")[0].toUpperCase()}
-                        </div>
-                        <div className="cd-lb-info">
-                          <span className="cd-lb-name">{profile.identity || "User"}</span>
-                          <span className="cd-lb-level">{getCommunityLevel(m.xp || 0)}</span>
-                        </div>
-                        <span className="cd-lb-xp">{m.xp || 0} XP</span>
-                      </div>
-                    );
-                  })}
-                {members.length === 0 && (
-                  <div className="cm-empty compact" style={{ textAlign: "center", padding: "40px 20px" }}>
-                    <h3 style={{ color: "#fff", fontSize: 16 }}>Be the first to join</h3>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+          </div>
+        )}
       </div>
-    </DashboardLayout>
+
+      {/* ── Right column: Insights panel ── */}
+      <InsightsPanel
+        community={community}
+        members={members}
+        insights={insights}
+        myRole={myRole}
+        onJoin={joinCommunity}
+      />
+    </div>
   );
 }
