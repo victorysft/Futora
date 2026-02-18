@@ -154,6 +154,8 @@ CREATE TABLE IF NOT EXISTS communities (
 );
 
 -- Backfill columns on existing communities table
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS owner_id UUID;
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS name TEXT;
 ALTER TABLE communities ADD COLUMN IF NOT EXISTS slug TEXT;
 ALTER TABLE communities ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE communities ADD COLUMN IF NOT EXISTS category TEXT;
