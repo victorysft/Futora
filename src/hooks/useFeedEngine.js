@@ -19,6 +19,7 @@ import { supabase } from "../supabaseClient";
  */
 
 const PAGE_SIZE = 20;
+const POLL_INTERVAL = 15000; // 15s polling for new posts
 
 // Profiles join shape for post queries
 const PROFILE_COLS = "id, identity, becoming, xp, level, streak, verified, badge_type, bio, discipline, avatar_url, followers_count, following_count";
@@ -37,35 +38,48 @@ export function useFeedEngine(userId) {
   const fetchingRef = useRef(false);
   const channelRef = useRef(null);
   const followingRef = useRef([]);
+  const pollRef = useRef(null);
+  const mountedRef = useRef(true);
 
   tabRef.current = tab;
   followingRef.current = followingIds;
 
-  // ── Fetch who the user follows ──
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // ── Fetch who the user follows (safe) ──
   useEffect(() => {
     if (!userId) return;
-    supabase
-      .from("follows")
-      .select("following_id")
-      .eq("follower_id", userId)
-      .eq("status", "accepted")
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("follows")
+          .select("following_id")
+          .eq("follower_id", userId)
+          .eq("status", "accepted");
         const ids = (data || []).map((f) => f.following_id);
-        setFollowingIds(ids);
-        followingRef.current = ids;
-      });
+        if (mountedRef.current) {
+          setFollowingIds(ids);
+          followingRef.current = ids;
+        }
+      } catch { /* follows table may not exist yet */ }
+    })();
   }, [userId]);
 
-  // ── Fetch user bookmarks ──
+  // ── Fetch user bookmarks (safe) ──
   useEffect(() => {
     if (!userId) return;
-    supabase
-      .from("bookmarks")
-      .select("post_id")
-      .eq("user_id", userId)
-      .then(({ data }) => {
-        if (data) setBookmarkedIds(new Set(data.map((b) => b.post_id)));
-      });
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("bookmarks")
+          .select("post_id")
+          .eq("user_id", userId);
+        if (data && mountedRef.current) setBookmarkedIds(new Set(data.map((b) => b.post_id)));
+      } catch { /* bookmarks table may not exist yet */ }
+    })();
   }, [userId]);
 
   // ── Enrich posts with author profile + likes + comments + media ──
@@ -75,40 +89,48 @@ export function useFeedEngine(userId) {
     const postIds = rawPosts.map((p) => p.id);
     const authorIds = [...new Set(rawPosts.map((p) => p.user_id))];
 
-    // Parallel fetch: profiles, likes, media, comments
-    const [profilesRes, likesRes, mediaRes, commentsRes] = await Promise.all([
+    // Parallel fetch with allSettled — one failure doesn't break all
+    let profiles = [], likes = [], media = [], comments = [];
+    const fetches = await Promise.allSettled([
       supabase.from("profiles").select(PROFILE_COLS).in("id", authorIds),
       supabase.from("likes").select("user_id, post_id").in("post_id", postIds),
       supabase.from("post_media").select("*").in("post_id", postIds).order("order_index"),
       supabase.from("comments").select("id, post_id, user_id, content, parent_comment_id, like_count, depth, created_at").in("post_id", postIds).order("created_at", { ascending: true }),
     ]);
 
-    const profileMap = new Map((profilesRes.data || []).map((p) => [p.id, p]));
+    if (fetches[0].status === "fulfilled") profiles = fetches[0].value.data || [];
+    if (fetches[1].status === "fulfilled") likes = fetches[1].value.data || [];
+    if (fetches[2].status === "fulfilled") media = fetches[2].value.data || [];
+    if (fetches[3].status === "fulfilled") comments = fetches[3].value.data || [];
+
+    const profileMap = new Map(profiles.map((p) => [p.id, p]));
     const likesMap = new Map();
-    (likesRes.data || []).forEach((l) => {
+    likes.forEach((l) => {
       if (!likesMap.has(l.post_id)) likesMap.set(l.post_id, []);
       likesMap.get(l.post_id).push(l);
     });
     const mediaMap = new Map();
-    (mediaRes.data || []).forEach((m) => {
+    media.forEach((m) => {
       if (!mediaMap.has(m.post_id)) mediaMap.set(m.post_id, []);
       mediaMap.get(m.post_id).push(m);
     });
     const commentMap = new Map();
-    (commentsRes.data || []).forEach((c) => {
+    comments.forEach((c) => {
       if (!commentMap.has(c.post_id)) commentMap.set(c.post_id, []);
       commentMap.get(c.post_id).push(c);
     });
 
     // Also enrich comment authors
-    const commentAuthorIds = [...new Set((commentsRes.data || []).map((c) => c.user_id))].filter((id) => !profileMap.has(id));
+    const commentAuthorIds = [...new Set(comments.map((c) => c.user_id))].filter((id) => !profileMap.has(id));
     if (commentAuthorIds.length > 0) {
-      const { data: cAuthors } = await supabase.from("profiles").select(PROFILE_COLS).in("id", commentAuthorIds);
-      (cAuthors || []).forEach((p) => profileMap.set(p.id, p));
+      try {
+        const { data: cAuthors } = await supabase.from("profiles").select(PROFILE_COLS).in("id", commentAuthorIds);
+        (cAuthors || []).forEach((p) => profileMap.set(p.id, p));
+      } catch { /* non-critical */ }
     }
 
     // Attach comment author profiles
-    (commentsRes.data || []).forEach((c) => {
+    comments.forEach((c) => {
       c.author = profileMap.get(c.user_id) || null;
     });
 
@@ -121,32 +143,9 @@ export function useFeedEngine(userId) {
     }));
   }, []);
 
-  // ── Fetch For You ──
-  const fetchForYou = useCallback(async (offset) => {
-    const { data, error } = await supabase.rpc("get_for_you_feed", {
-      p_user_id: userId,
-      p_limit: PAGE_SIZE,
-      p_offset: offset,
-    });
-    if (error) {
-      console.error("[FeedEngine] For You RPC error:", error);
-      // Fallback: plain query
-      const { data: fallback } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("visibility", "public")
-        .order("created_at", { ascending: false })
-        .range(offset, offset + PAGE_SIZE - 1);
-      return fallback || [];
-    }
-    return data || [];
-  }, [userId]);
-
-  // ── Fetch Following ──
-  const fetchFollowing = useCallback(async (offset) => {
-    const fIds = followingRef.current;
-    if (!fIds.length) {
-      // CRITICAL: Never show empty — fallback to global
+  // ── Global fallback: always returns posts, never throws ──
+  const fetchGlobalFallback = useCallback(async (offset = 0) => {
+    try {
       const { data } = await supabase
         .from("posts")
         .select("*")
@@ -154,35 +153,71 @@ export function useFeedEngine(userId) {
         .order("created_at", { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
       return data || [];
+    } catch {
+      try {
+        const { data } = await supabase
+          .from("posts")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1);
+        return data || [];
+      } catch { return []; }
     }
-    const { data } = await supabase
-      .from("posts")
-      .select("*")
-      .in("user_id", fIds)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1);
-    return data || [];
   }, []);
+
+  // ── Fetch For You ──
+  const fetchForYou = useCallback(async (offset) => {
+    try {
+      const { data, error } = await supabase.rpc("get_for_you_feed", {
+        p_user_id: userId,
+        p_limit: PAGE_SIZE,
+        p_offset: offset,
+      });
+      if (!error && data && data.length > 0) return data;
+    } catch { /* RPC may not exist */ }
+    return await fetchGlobalFallback(offset);
+  }, [userId, fetchGlobalFallback]);
+
+  // ── Fetch Following ──
+  const fetchFollowing = useCallback(async (offset) => {
+    const fIds = followingRef.current;
+    if (fIds.length > 0) {
+      try {
+        const { data, error } = await supabase
+          .from("posts")
+          .select("*")
+          .in("user_id", fIds)
+          .order("created_at", { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1);
+        if (!error && data && data.length > 0) return data;
+      } catch { /* ignore */ }
+    }
+    // CRITICAL: Never show empty — fallback to global
+    return await fetchGlobalFallback(offset);
+  }, [fetchGlobalFallback]);
 
   // ── Fetch Trending ──
   const fetchTrending = useCallback(async (offset) => {
-    const { data, error } = await supabase.rpc("get_trending_feed", {
-      p_limit: PAGE_SIZE,
-      p_offset: offset,
-    });
-    if (error) {
+    try {
+      const { data, error } = await supabase.rpc("get_trending_feed", {
+        p_limit: PAGE_SIZE,
+        p_offset: offset,
+      });
+      if (!error && data && data.length > 0) return data;
+    } catch { /* RPC may not exist */ }
+    try {
       const dayAgo = new Date(Date.now() - 86400000).toISOString();
-      const { data: fallback } = await supabase
+      const { data } = await supabase
         .from("posts")
         .select("*")
         .eq("visibility", "public")
         .gte("created_at", dayAgo)
         .order("like_count", { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
-      return fallback || [];
-    }
-    return data || [];
-  }, []);
+      if (data && data.length > 0) return data;
+    } catch { /* ignore */ }
+    return await fetchGlobalFallback(offset);
+  }, [fetchGlobalFallback]);
 
   // ── Main fetch dispatcher ──
   const fetchPosts = useCallback(async (page = 0, append = false) => {
@@ -204,10 +239,19 @@ export function useFeedEngine(userId) {
         rawPosts = await fetchTrending(offset);
       }
 
+      if (!mountedRef.current) return;
       setHasMore(rawPosts.length === PAGE_SIZE);
 
       // Enrich with profiles, likes, media, comments
-      const enriched = await enrichPosts(rawPosts);
+      let enriched;
+      try {
+        enriched = await enrichPosts(rawPosts);
+      } catch {
+        // If enrichment fails, show raw posts with empty relations
+        enriched = rawPosts.map((p) => ({ ...p, author: null, likes: [], media: [], comments: [] }));
+      }
+
+      if (!mountedRef.current) return;
 
       if (append) {
         setPosts((prev) => {
@@ -220,8 +264,10 @@ export function useFeedEngine(userId) {
     } catch (err) {
       console.error("[FeedEngine] fetch error:", err);
     } finally {
-      setLoading(false);
-      fetchingRef.current = false;
+      if (mountedRef.current) {
+        setLoading(false);
+        fetchingRef.current = false;
+      }
     }
   }, [userId, fetchForYou, fetchFollowing, fetchTrending, enrichPosts]);
 
@@ -229,6 +275,29 @@ export function useFeedEngine(userId) {
   useEffect(() => {
     if (userId) fetchPosts(0, false);
   }, [userId, fetchPosts]);
+
+  // ── Polling: check for new posts every 15s ──
+  useEffect(() => {
+    if (!userId) return;
+    pollRef.current = setInterval(async () => {
+      if (fetchingRef.current || !mountedRef.current) return;
+      try {
+        const { data } = await supabase
+          .from("posts")
+          .select("id, created_at")
+          .eq("visibility", "public")
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (data && data.length > 0 && mountedRef.current) {
+          const newestLocal = posts[0]?.created_at;
+          if (newestLocal && new Date(data[0].created_at) > new Date(newestLocal)) {
+            setNewCount((c) => c + 1);
+          }
+        }
+      } catch { /* silent polling */ }
+    }, POLL_INTERVAL);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [userId, posts]);
 
   // ── Tab change ──
   const setTab = useCallback((newTab) => {
@@ -252,21 +321,27 @@ export function useFeedEngine(userId) {
   // ── Realtime new posts ──
   useEffect(() => {
     if (!userId) return;
-    if (channelRef.current) supabase.removeChannel(channelRef.current);
+    if (channelRef.current) {
+      try { supabase.removeChannel(channelRef.current); } catch { /* ignore */ }
+    }
 
-    const channel = supabase
-      .channel("feed-engine-rt")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, (payload) => {
-        if (payload.new.user_id === userId) return;
-        if (tabRef.current === "following" && !followingRef.current.includes(payload.new.user_id)) return;
-        setNewCount((c) => c + 1);
-      })
-      .subscribe();
+    try {
+      const channel = supabase
+        .channel("feed-engine-rt-" + userId.slice(0, 8))
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, (payload) => {
+          if (!mountedRef.current) return;
+          if (payload.new.user_id === userId) return;
+          if (tabRef.current === "following" && followingRef.current.length > 0 && !followingRef.current.includes(payload.new.user_id)) return;
+          setNewCount((c) => c + 1);
+        })
+        .subscribe();
 
-    channelRef.current = channel;
+      channelRef.current = channel;
+    } catch { /* realtime may not be enabled */ }
+
     return () => {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        try { supabase.removeChannel(channelRef.current); } catch { /* ignore */ }
         channelRef.current = null;
       }
     };
@@ -366,28 +441,37 @@ export function useFeedEngine(userId) {
       // 5. Optimistically prepend
       setPosts((prev) => [post, ...prev]);
 
-      // 6. XP reward
-      try {
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("xp, level")
-          .eq("id", userId)
-          .single();
-        if (prof) {
-          const newXP = (prof.xp || 0) + 5;
-          await supabase
-            .from("profiles")
-            .update({ xp: newXP, level: Math.floor(Math.sqrt(newXP / 50)) })
-            .eq("id", userId);
+      // 6. XP reward (fire-and-forget)
+      supabase
+        .from("profiles")
+        .select("xp, level")
+        .eq("id", userId)
+        .single()
+        .then(({ data: prof }) => {
+          if (prof) {
+            const newXP = (prof.xp || 0) + 5;
+            supabase
+              .from("profiles")
+              .update({ xp: newXP, level: Math.floor(Math.sqrt(newXP / 50)) })
+              .eq("id", userId);
+          }
+        })
+        .catch(() => {});
+
+      // 7. Background refetch after 2s to sync with server
+      setTimeout(() => {
+        if (mountedRef.current) {
+          pageRef.current = 0;
+          fetchPosts(0, false);
         }
-      } catch { /* non-critical */ }
+      }, 2000);
 
       return post;
     } catch (err) {
       console.error("[FeedEngine] create post error:", err);
       return null;
     }
-  }, [userId, uploadMedia]);
+  }, [userId, uploadMedia, fetchPosts]);
 
   // ══════════════════════════════════════════
   // LIKE POST (optimistic, toggle)
@@ -509,11 +593,12 @@ export function useFeedEngine(userId) {
   const recordView = useCallback(async (postId) => {
     if (!postId || !userId) return;
     try {
-      await supabase.rpc("record_post_view", {
-        p_post_id: postId,
-        p_user_id: userId,
-      });
-    } catch { /* silent */ }
+      await supabase.rpc("record_post_view", { p_post_id: postId, p_user_id: userId });
+    } catch {
+      try {
+        await supabase.from("post_views").insert({ post_id: postId, user_id: userId });
+      } catch { /* view tracking is non-critical */ }
+    }
   }, [userId]);
 
   // ══════════════════════════════════════════

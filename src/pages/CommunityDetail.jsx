@@ -379,10 +379,10 @@ export default function CommunityDetail() {
 
                 <div className="cd-posts-list">
                   {posts.length === 0 ? (
-                    <div className="cm-empty compact">
-                      <span className="cm-empty-icon">--</span>
-                      <h3>No posts yet</h3>
-                      <p>Be the first to post in this community</p>
+                    <div className="cm-empty compact" style={{ textAlign: "center", padding: "40px 20px" }}>
+                      <div style={{ fontSize: 24, marginBottom: 8, opacity: 0.5 }}>+</div>
+                      <h3 style={{ color: "#fff", fontSize: 16, marginBottom: 6 }}>Start the conversation</h3>
+                      <p style={{ color: "var(--d-text-muted)", fontSize: 13 }}>Share an update with this community</p>
                     </div>
                   ) : (
                     posts.map((p) => (
@@ -557,7 +557,7 @@ export default function CommunityDetail() {
                     return (
                       <div key={m.user_id} className="cd-lb-row">
                         <span className={`cd-lb-rank${i < 3 ? " top" : ""}`}>
-                          {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                          {`#${i + 1}`}
                         </span>
                         <div className="cd-lb-avatar">
                           {(profile.identity || "?")[0].toUpperCase()}
@@ -571,8 +571,8 @@ export default function CommunityDetail() {
                     );
                   })}
                 {members.length === 0 && (
-                  <div className="cm-empty compact">
-                    <h3>No members yet</h3>
+                  <div className="cm-empty compact" style={{ textAlign: "center", padding: "40px 20px" }}>
+                    <h3 style={{ color: "#fff", fontSize: 16 }}>Be the first to join</h3>
                   </div>
                 )}
               </motion.div>

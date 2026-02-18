@@ -821,10 +821,11 @@ export default function FeedRebuilt() {
                 <SkeletonPost /><SkeletonPost /><SkeletonPost />
               </div>
             ) : posts.length === 0 ? (
-              <div className="feed-empty">
-                {Icons.globe}
-                <h3>No posts yet</h3>
-                <p>{tab === "following" ? "Follow builders to see their posts" : "Be the first to share"}</p>
+              <div className="feed-empty-cta" style={{ textAlign: "center", padding: "48px 24px" }}>
+                <div style={{ width: 48, height: 48, margin: "0 auto 16px", opacity: 0.5 }}>{Icons.pen}</div>
+                <h3 style={{ color: "var(--d-text)", fontSize: 18, marginBottom: 8 }}>Share your first update</h3>
+                <p style={{ color: "var(--d-text-muted)", fontSize: 14, marginBottom: 20 }}>Write what you are working on today. Your post will appear instantly.</p>
+                <button className="feed-cta-btn" onClick={() => composeRef.current?.focus()} style={{ background: "var(--d-purple)", color: "#fff", border: "none", padding: "10px 28px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Start writing</button>
               </div>
             ) : (
               <motion.div className="feed-posts" variants={stagger} initial="hidden" animate="visible">

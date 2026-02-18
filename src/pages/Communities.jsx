@@ -254,13 +254,14 @@ export default function Communities() {
           {loading ? (
             <div className="cm-loading">
               <div className="cm-spinner" />
-              <span>Loading communities…</span>
+              <span>Loading communities...</span>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="cm-empty">
-              <span className="cm-empty-icon">--</span>
-              <h3>{view === "mine" ? "No communities yet" : "Nothing found"}</h3>
-              <p>{view === "mine" ? "Create or join one to get started" : "Try a different search"}</p>
+            <div className="cm-empty" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "56px 24px" }}>
+              <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.5 }}>+</div>
+              <h3 style={{ color: "#fff", fontSize: 18, marginBottom: 8 }}>{view === "mine" ? "You haven't joined any groups yet" : "Create the first focused group"}</h3>
+              <p style={{ color: "var(--d-text-muted)", fontSize: 14, marginBottom: 20 }}>{view === "mine" ? "Browse and join a group, or create your own" : "Start a community around your discipline"}</p>
+              <button onClick={() => setShowCreate(true)} style={{ background: "var(--d-purple)", color: "#fff", border: "none", padding: "10px 28px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{view === "mine" ? "Create a group" : "Create community"}</button>
             </div>
           ) : (
             filtered.map((c) => (
