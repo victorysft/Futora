@@ -387,22 +387,41 @@ export function useFeedEngine(userId) {
   // CREATE POST
   // ══════════════════════════════════════════
   const createPost = useCallback(async (content, options = {}) => {
-    if (!userId || !content.trim()) return null;
+    console.log("[FeedEngine] createPost called", { userId, contentLength: content?.length, options });
+
+    if (!userId) {
+      console.error("[FeedEngine] createPost BLOCKED: no userId — user not authenticated");
+      return { error: "Not authenticated. Please sign in first." };
+    }
+
+    // Allow media-only posts (content can be empty if media exists)
+    const trimmed = (content || "").trim();
     const { visibility = "public", mediaFiles = [], disciplineTag = null } = options;
+
+    if (!trimmed && mediaFiles.length === 0) {
+      console.warn("[FeedEngine] createPost BLOCKED: no content and no media");
+      return { error: "Write something or attach media." };
+    }
+
+    // If no text content, use a placeholder for the NOT NULL constraint
+    const postContent = trimmed || "[media]";
 
     try {
       // 1. Upload media
       let mediaUploads = [];
       if (mediaFiles.length > 0) {
+        console.log("[FeedEngine] uploading", mediaFiles.length, "media files...");
         mediaUploads = await uploadMedia(mediaFiles);
+        console.log("[FeedEngine] media upload result:", mediaUploads.length, "files uploaded");
       }
 
       // 2. Insert post
+      console.log("[FeedEngine] inserting post into database...");
       const { data: post, error } = await supabase
         .from("posts")
         .insert({
           user_id: userId,
-          content: content.trim(),
+          content: postContent,
           visibility,
           type: "post",
           discipline_tag: disciplineTag,
@@ -410,7 +429,12 @@ export function useFeedEngine(userId) {
         .select("*")
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("[FeedEngine] DB insert FAILED:", error.message, error.details, error.hint, error.code);
+        throw error;
+      }
+
+      console.log("[FeedEngine] post inserted successfully:", post.id);
 
       // 3. Insert media records
       if (mediaUploads.length > 0 && post) {
@@ -439,6 +463,7 @@ export function useFeedEngine(userId) {
       post.comments = [];
 
       // 5. Optimistically prepend
+      console.log("[FeedEngine] prepending post to feed state");
       setPosts((prev) => [post, ...prev]);
 
       // 6. XP reward (fire-and-forget)
@@ -466,10 +491,11 @@ export function useFeedEngine(userId) {
         }
       }, 2000);
 
-      return post;
+      console.log("[FeedEngine] createPost COMPLETE — post live:", post.id);
+      return { post };
     } catch (err) {
-      console.error("[FeedEngine] create post error:", err);
-      return null;
+      console.error("[FeedEngine] createPost FAILED:", err);
+      return { error: err?.message || "Failed to create post. Please try again." };
     }
   }, [userId, uploadMedia, fetchPosts]);
 

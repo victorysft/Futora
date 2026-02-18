@@ -237,6 +237,7 @@ const ComposeBox = memo(function ComposeBox({ profile, onPost, composeRef }) {
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
   const [showDisciplines, setShowDisciplines] = useState(false);
+  const [postError, setPostError] = useState(null);
   const inputRef = useRef(null);
   const fileRef = useRef(null);
 
@@ -266,20 +267,45 @@ const ComposeBox = memo(function ComposeBox({ profile, onPost, composeRef }) {
   };
 
   const handlePost = async () => {
-    if ((!content.trim() && mediaFiles.length === 0) || posting) return;
+    console.log("[ComposeBox] handlePost fired", { contentLength: content.length, mediaCount: mediaFiles.length });
+    if ((!content.trim() && mediaFiles.length === 0) || posting) {
+      console.warn("[ComposeBox] handlePost BLOCKED: empty content or already posting");
+      return;
+    }
     setPosting(true);
-    await onPost(content, {
-      disciplineTag: discipline || null,
-      visibility,
-      mediaFiles,
-    });
-    setContent("");
-    setMediaFiles([]);
-    mediaPreviews.forEach((p) => URL.revokeObjectURL(p.url));
-    setMediaPreviews([]);
-    setDiscipline("");
-    setPosting(false);
-    inputRef.current && inputRef.current.focus();
+    setPostError(null);
+
+    try {
+      const result = await onPost(content, {
+        disciplineTag: discipline || null,
+        visibility,
+        mediaFiles,
+      });
+
+      console.log("[ComposeBox] onPost result:", result);
+
+      if (result?.error) {
+        // Post failed — show error, keep content
+        console.error("[ComposeBox] Post failed:", result.error);
+        setPostError(result.error);
+        setPosting(false);
+        return;
+      }
+
+      // Success — clear everything
+      console.log("[ComposeBox] Post succeeded — clearing form");
+      setContent("");
+      setMediaFiles([]);
+      mediaPreviews.forEach((p) => URL.revokeObjectURL(p.url));
+      setMediaPreviews([]);
+      setDiscipline("");
+      setPosting(false);
+      inputRef.current && inputRef.current.focus();
+    } catch (err) {
+      console.error("[ComposeBox] Unexpected error:", err);
+      setPostError("Something went wrong. Check console.");
+      setPosting(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -291,12 +317,17 @@ const ComposeBox = memo(function ComposeBox({ profile, onPost, composeRef }) {
       <div className="feed-compose__inner">
         <UserAvatar identity={profile?.identity} avatarUrl={profile?.avatar_url} size={42} />
         <div className="feed-compose__body">
+          {postError && (
+            <div className="feed-compose__error" style={{ color: "#EF4444", fontSize: 13, marginBottom: 8, padding: "6px 10px", background: "rgba(239,68,68,0.08)", borderRadius: 6 }}>
+              {postError}
+            </div>
+          )}
           <textarea
             ref={inputRef}
             className="feed-compose__input"
             placeholder="Share your progress..."
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => { setContent(e.target.value); if (postError) setPostError(null); }}
             onKeyDown={handleKeyDown}
             maxLength={2000}
             rows={2}
